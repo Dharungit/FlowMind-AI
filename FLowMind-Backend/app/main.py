@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 import structlog
@@ -14,7 +15,7 @@ from app.services.chat import ChatService
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     if settings is None:
-        settings = Settings()
+        settings = Settings(provider_api_key=os.getenv("PROVIDER_API_KEY", ""))
 
     structlog.configure(
         wrapper_class=structlog.make_filtering_bound_logger(
