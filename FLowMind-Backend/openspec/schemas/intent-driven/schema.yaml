@@ -275,3 +275,12 @@ apply:
   instruction: |
     Read context files, work through pending tasks, mark complete as you go.
     Pause if you hit blockers or need clarification.
+  hooks:
+    post-apply:
+      instruction: |
+        Update README.md at the repository root to reflect the changes implemented.
+        Review the change's proposal, specs, design, and tasks artifacts, plus the
+        modified source code, to capture what changed. Retain existing content that
+        is still accurate; add or update sections describing new capabilities,
+        endpoints, configuration, dependencies, or project structure. Keep the tone
+        and format consistent with the current README.

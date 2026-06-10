@@ -14,3 +14,5 @@ rules:
     - Must use architectural-decision-records skill
   spec:
     - Must use gherkin-authoring skill
+  apply:
+    - After all tasks complete, read `apply.hooks.post-apply` from the schema and execute it to update README.md

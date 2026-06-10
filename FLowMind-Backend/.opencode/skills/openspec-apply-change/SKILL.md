@@ -82,13 +82,15 @@ Implement tasks from an OpenSpec change.
    - Error or blocker encountered → report and wait for guidance
    - User interrupts
 
-7. **On completion or pause, show status**
+7. **On completion, execute post-apply hooks, then show status**
 
-   Display:
-   - Tasks completed this session
-   - Overall progress: "N/M tasks complete"
-   - If all done: suggest archive
-   - If paused: explain why and wait for guidance
+   When all tasks are done:
+   a. Read `openspec/schemas/<schemaName>/schema.yaml` and check for `apply.hooks.post-apply`
+   b. If a post-apply hook exists, execute its instruction — typically reading
+      context artifacts (proposal, specs, design, tasks) and updating README.md
+   c. Then show completion status
+
+   If paused (tasks remain), explain why and wait for guidance.
 
 **Output During Implementation**
 
@@ -118,7 +120,7 @@ Working on task 4/7: <task description>
 - [x] Task 2
 ...
 
-All tasks complete! Ready to archive this change.
+All tasks complete! README.md updated to reflect changes. Ready to archive this change.
 ```
 
 **Output On Pause (Issue Encountered)**
