@@ -1,8 +1,7 @@
 ## ADDED Requirements
 
-### Requirement: Chat message thread
-Feature: Chat Interface
-Rule: The chat screen displays a scrollable thread of user and assistant messages
+### Requirement: Chat message thread display
+The system SHALL display a scrollable thread of user and assistant messages.
 
 #### Scenario: User sends a message and sees it in the thread
 - **GIVEN** the chat screen is open with no messages
@@ -31,9 +30,8 @@ Rule: The chat screen displays a scrollable thread of user and assistant message
 - **THEN** the thread scrolls to the latest message
 - **AND** auto-scroll resumes
 
-### Requirement: Message input area
-Feature: Chat Interface
-Rule: The input area supports text entry, Send on Enter, newline on Shift+Enter
+### Requirement: Message input area text entry
+The system SHALL provide a text input that sends on Enter and inserts newline on Shift+Enter.
 
 #### Scenario: User sends message with Enter
 - **GIVEN** the input area is empty
@@ -53,9 +51,8 @@ Rule: The input area supports text entry, Send on Enter, newline on Shift+Enter
 - **THEN** the input is disabled
 - **AND** the user cannot send a new message
 
-### Requirement: Empty state
-Feature: Chat Interface
-Rule: The chat screen shows a placeholder when no messages exist
+### Requirement: Empty state placeholder
+The system SHALL show a placeholder when no messages exist.
 
 #### Scenario: Empty state is shown on first load
 - **GIVEN** the chat screen has just loaded
@@ -69,8 +66,7 @@ Rule: The chat screen shows a placeholder when no messages exist
 - **THEN** the empty state is replaced by the message thread
 
 ### Requirement: Streaming response display
-Feature: Chat Interface
-Rule: Assistant responses render incrementally as tokens arrive
+Assistant responses SHALL render incrementally as tokens arrive.
 
 #### Scenario: Tokens appear one by one during streaming
 - **GIVEN** a message has been sent with stream: true
@@ -84,8 +80,7 @@ Rule: Assistant responses render incrementally as tokens arrive
 - **THEN** a "thinking" indicator is shown in the assistant message area
 
 ### Requirement: Stop generation
-Feature: Chat Interface
-Rule: The user can cancel an in-progress streaming response
+The user SHALL be able to cancel an in-progress streaming response.
 
 #### Scenario: Stop button appears during streaming
 - **GIVEN** a streaming response is in progress
@@ -100,8 +95,7 @@ Rule: The user can cancel an in-progress streaming response
 - **AND** the partial message remains visible
 
 ### Requirement: Markdown rendering
-Feature: Chat Interface
-Rule: Assistant messages render Markdown content with formatted output
+Assistant messages SHALL render Markdown content with formatted output.
 
 #### Scenario: Code block is rendered with formatting
 - **GIVEN** an assistant message contains a code block

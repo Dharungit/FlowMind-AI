@@ -1,8 +1,7 @@
 ## ADDED Requirements
 
-### Requirement: API client sends correct request shape
-Feature: Backend Integration
-Rule: The chat API client sends POST requests with the defined payload format to the configured backend URL
+### Requirement: API client request shape
+The chat API client SHALL send POST requests with the defined payload format to the configured backend URL.
 
 #### Scenario: Sends a chat completion request
 - **GIVEN** a user message has been submitted
@@ -22,9 +21,8 @@ Rule: The chat API client sends POST requests with the defined payload format to
 - **WHEN** the chat API client sends the request
 - **THEN** a default temperature of 0.7 is used
 
-### Requirement: API client handles streaming responses
-Feature: Backend Integration
-Rule: The API client consumes a ReadableStream response and yields tokens incrementally
+### Requirement: API client streaming
+The API client SHALL consume a ReadableStream response and yield tokens incrementally.
 
 #### Scenario: Streams tokens from a ReadableStream response
 - **GIVEN** the request was sent with `stream: true`
@@ -43,9 +41,8 @@ Rule: The API client consumes a ReadableStream response and yields tokens increm
 - **WHEN** the backend responds
 - **THEN** the client returns the complete message content at once
 
-### Requirement: API client handles errors gracefully
-Feature: Backend Integration
-Rule: The API client surfaces network and server errors without crashing the UI
+### Requirement: API client error handling
+The API client SHALL surface network and server errors without crashing the UI.
 
 #### Scenario: Network error is surfaced to caller
 - **GIVEN** the backend is unreachable
@@ -59,9 +56,8 @@ Rule: The API client surfaces network and server errors without crashing the UI
 - **THEN** the client throws or returns an error indicator
 - **AND** the error includes the status code
 
-### Requirement: Backend URL is configurable via environment
-Feature: Backend Integration
-Rule: The backend URL is read from `NEXT_PUBLIC_BACKEND_URL` at runtime
+### Requirement: Backend URL configuration
+The backend URL SHALL be read from `NEXT_PUBLIC_BACKEND_URL` at runtime.
 
 #### Scenario: Uses environment variable for backend URL
 - **GIVEN** `NEXT_PUBLIC_BACKEND_URL` is set in the environment
