@@ -9,7 +9,9 @@ rules:
   proposal:
     - Must use grill-me skill
   design:
-    - Must use c4-diagrams skill
+    - Must use c4-diagrams skill for architecture
+    - Must use ui-ux-pro-max skill for visual UI/UX design (styles, colors, typography, UX patterns)
+    - Must use frontend-design skill for visual design identity and creative direction
   adr:
     - Must use architectural-decision-records skill
   spec:
