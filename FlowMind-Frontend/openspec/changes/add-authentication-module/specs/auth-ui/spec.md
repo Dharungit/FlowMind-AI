@@ -1,8 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Sign-In Page
-Feature: Auth UI
-Rule: The `/auth/signin` page provides a Google sign-in button in a centered card layout with `@magicui/animated-grid-pattern` background.
+The `/auth/signin` page SHALL provide a Google sign-in button in a centered card layout with `@magicui/animated-grid-pattern` background.
 
 #### Scenario: Sign-in page renders correctly
 - **GIVEN** the user is not authenticated
@@ -37,8 +36,7 @@ Rule: The `/auth/signin` page provides a Google sign-in button in a centered car
 - **AND** the static grid pattern is still visible
 
 ### Requirement: User Menu
-Feature: Auth UI
-Rule: Authenticated users see a user menu with their avatar and sign-out option.
+Authenticated users SHALL see a user menu with their avatar and sign-out option.
 
 #### Scenario: User menu shows authenticated user
 - **GIVEN** the user is authenticated

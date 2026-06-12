@@ -1,8 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Middleware Route Protection
-Feature: Route Guards
-Rule: Next.js middleware protects the root `/` route and redirects unauthenticated users to `/auth/signin`.
+Next.js proxy SHALL protect the root `/` route and redirect unauthenticated users to `/auth/signin`.
 
 #### Scenario: Unauthenticated user visits protected page
 - **GIVEN** the user is not authenticated
@@ -33,8 +32,7 @@ Rule: Next.js middleware protects the root `/` route and redirects unauthenticat
 - **THEN** the middleware allows the request through without checking auth
 
 ### Requirement: Client-Side AuthGuard
-Feature: Route Guards
-Rule: A reusable `AuthGuard` component wraps protected UI sections and shows a loading state while session is resolving.
+A reusable `AuthGuard` component SHALL wrap protected UI sections and show a loading state while session is resolving.
 
 #### Scenario: AuthGuard shows loading while session resolves
 - **GIVEN** a page wrapped in `AuthGuard`

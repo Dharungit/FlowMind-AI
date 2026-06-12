@@ -1,8 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Authenticated API Requests
-Feature: Auth API Client
-Rule: All API requests to the backend are automatically authenticated with the current access token.
+All API requests to the backend SHALL be automatically authenticated with the current access token.
 
 #### Scenario: Attach access token to request
 - **GIVEN** the user is authenticated with a valid access token
@@ -16,8 +15,7 @@ Rule: All API requests to the backend are automatically authenticated with the c
 - **THEN** the request is sent without an `Authorization` header
 
 ### Requirement: Automatic Token Refresh on 401
-Feature: Auth API Client
-Rule: When a request returns 401, the client automatically attempts token refresh and retries the request.
+When a request returns 401, the client SHALL automatically attempt token refresh and retry the request.
 
 #### Scenario: Successful token refresh and retry
 - **GIVEN** the user has an expired access token and a valid refresh token

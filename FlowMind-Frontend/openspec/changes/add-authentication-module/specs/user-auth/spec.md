@@ -1,8 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Google OAuth Sign-In
-Feature: User Authentication
-Rule: Users sign in with their Google account. The Google ID token is exchanged for a backend-issued JWT via NextAuth callbacks.
+Users SHALL authenticate via Google OAuth. The Google ID token SHALL be exchanged for a backend-issued JWT via NextAuth callbacks.
 
 #### Scenario: Successful Google sign-in
 - **GIVEN** the user is not authenticated
@@ -29,8 +28,7 @@ Rule: Users sign in with their Google account. The Google ID token is exchanged 
 - **AND** if all retries fail, the user sees a network error on the sign-in page
 
 ### Requirement: Session Retrieval
-Feature: Session Management
-Rule: Authenticated users can retrieve their session data including access token and user profile.
+Authenticated users SHALL be able to retrieve their session data including access token and user profile.
 
 #### Scenario: Retrieve session when authenticated
 - **GIVEN** the user has a valid NextAuth session cookie
@@ -44,8 +42,7 @@ Rule: Authenticated users can retrieve their session data including access token
 - **AND** `status` is `"unauthenticated"`
 
 ### Requirement: Token Refresh
-Feature: Session Management
-Rule: When the access token expires, NextAuth's `jwt` callback refreshes it using the stored refresh token.
+When the access token expires, NextAuth's `jwt` callback SHALL refresh it using the stored refresh token.
 
 #### Scenario: Automatic token refresh
 - **GIVEN** the user has an expired access token and a valid refresh token in the JWT session
@@ -63,8 +60,7 @@ Rule: When the access token expires, NextAuth's `jwt` callback refreshes it usin
 - **AND** the session is cleared
 
 ### Requirement: Sign Out
-Feature: Session Management
-Rule: Authenticated users can sign out, which revokes tokens on the backend and clears the local session.
+Authenticated users SHALL be able to sign out, which revokes tokens on the backend and clears the local session.
 
 #### Scenario: Successful sign-out
 - **GIVEN** the user is authenticated

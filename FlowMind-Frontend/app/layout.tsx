@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import "./globals.css"
+import { AuthProviders } from "@/features/auth/components/providers"
 
 export const metadata: Metadata = {
   title: "FlowMind Chat",
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-      <body className="h-full font-sans antialiased">{children}</body>
+      <body className="h-full font-sans antialiased">
+        <AuthProviders>{children}</AuthProviders>
+      </body>
     </html>
   )
 }
