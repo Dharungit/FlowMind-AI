@@ -15,6 +15,8 @@ from app.middleware import JwtAuthMiddleware, LoggingMiddleware, RateLimitMiddle
 from app.services.chat import ChatService
 from app.services.token import TokenService
 
+logger = logging.getLogger("flowmind")
+
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     if settings is None:

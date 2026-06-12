@@ -1,11 +1,15 @@
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 from starlette.testclient import TestClient
 
-from app.api.chat import get_service
+from app.api.chat import get_conversation_service, get_message_service
 from app.database import get_db
 from app.main import create_app
 from app.services.chat import ChatService
+from app.services.conversation import ConversationService
+from app.services.message import MessageService
 from app.services.token import TokenService
 
 
@@ -26,12 +30,50 @@ def _mock_chat_service(settings):
     return service
 
 
+def _mock_conv_service():
+    service = MagicMock(spec=ConversationService)
+    now = datetime.now(timezone.utc)
+    conv_id = uuid4()
+    conv = MagicMock()
+    conv.id = conv_id
+    conv.title = "My Chat"
+    conv.created_at = now
+    conv.updated_at = now
+    conv.messages = []
+    service.create = AsyncMock(return_value=conv)
+    service.list_by_user = AsyncMock(return_value=[])
+    service.get_by_id = AsyncMock(return_value=conv)
+    service.update_title = AsyncMock(return_value=conv)
+    service.delete = AsyncMock(return_value=True)
+    return service
+
+
+def _mock_msg_service():
+    service = MagicMock(spec=MessageService)
+    now = datetime.now(timezone.utc)
+    msg_id = uuid4()
+    resp = MagicMock()
+    resp.id = msg_id
+    resp.role = "assistant"
+    resp.content = "Mock reply"
+    resp.metadata = None
+    resp.created_at = now
+    service.add_message = AsyncMock(return_value=resp)
+    service.delete_message = AsyncMock(return_value=True)
+    return service
+
+
 def _app(settings):
     app = create_app(settings)
     app.state.settings = settings
     app.state.token_service = TokenService(settings)
-    app.state.chat_service = ChatService(settings)
+    app.state.chat_service = _mock_chat_service(settings)
     return app
+
+
+def _auth_headers(token_service: TokenService) -> dict:
+    token = token_service.generate_access_token("user-123", "test@example.com")
+    return {"Authorization": f"Bearer {token}"}
 
 
 def test_health_returns_ok(settings):
@@ -42,32 +84,54 @@ def test_health_returns_ok(settings):
     assert resp.json() == {"status": "ok"}
 
 
-def test_chat_completion_returns_422_on_invalid_body(settings):
+def test_chat_completion_route_removed(settings):
     app = _app(settings)
-    app.dependency_overrides[get_service] = lambda: _mock_chat_service(settings)
     client = TestClient(app)
     token_service = TokenService(settings)
-    token = token_service.generate_access_token("user-123", "test@example.com")
     resp = client.post(
         "/v1/chat/completions",
-        json={},
-        headers={"Authorization": f"Bearer {token}"},
+        json={"messages": [{"role": "user", "content": "Hi"}]},
+        headers=_auth_headers(token_service),
     )
-    assert resp.status_code == 422
+    assert resp.status_code == 404
 
 
-def test_chat_completion_integration(settings):
+def test_create_conversation(settings):
     app = _app(settings)
-    app.dependency_overrides[get_service] = lambda: _mock_chat_service(settings)
+    app.dependency_overrides[get_conversation_service] = lambda: _mock_conv_service()
     client = TestClient(app)
     token_service = TokenService(settings)
-    token = token_service.generate_access_token("user-123", "test@example.com")
     resp = client.post(
-        "/v1/chat/completions",
-        json={"messages": [{"role": "user", "content": "Hi"}], "stream": False},
-        headers={"Authorization": f"Bearer {token}"},
+        "/v1/conversations",
+        json={"title": "My Chat"},
+        headers=_auth_headers(token_service),
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["title"] == "My Chat"
+    assert "id" in data
+
+
+def test_list_conversations_empty(settings):
+    app = _app(settings)
+    conv_service = MagicMock(spec=ConversationService)
+    conv_service.list_by_user = AsyncMock(return_value=[])
+    app.dependency_overrides[get_conversation_service] = lambda: conv_service
+    client = TestClient(app)
+    token_service = TokenService(settings)
+    resp = client.get(
+        "/v1/conversations",
+        headers=_auth_headers(token_service),
     )
     assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_conversations_require_auth(settings):
+    app = _app(settings)
+    client = TestClient(app)
+    resp = client.post("/v1/conversations", json={"title": "X"})
+    assert resp.status_code == 401
 
 
 @patch("app.api.auth.id_token.verify_oauth2_token")
