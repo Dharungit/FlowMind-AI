@@ -3,30 +3,59 @@ import logging
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
+
+from app.services.token import TokenService
 
 logger = logging.getLogger("flowmind")
 
 
-class AuthMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, auth_token: str | None = None):
+PUBLIC_PATHS = {"/health", "/v1/auth/google", "/v1/auth/refresh"}
+
+
+class JwtAuthMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, token_service: TokenService):
         super().__init__(app)
-        self.auth_token = auth_token
+        self.token_service = token_service
 
     async def dispatch(self, request: Request, call_next):
-        if self.auth_token and request.method in ("POST", "PUT", "DELETE", "PATCH"):
-            auth = request.headers.get("Authorization", "")
-            if auth != f"Bearer {self.auth_token}":
-                return JSONResponse(
-                    status_code=401,
-                    content={
-                        "error": {
-                            "message": "Invalid or missing authentication token",
-                            "type": "authentication_error",
-                            "code": 401,
-                        }
-                    },
-                )
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
+        if request.url.path in PUBLIC_PATHS:
+            return await call_next(request)
+
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer "):
+            logger.warning("missing auth header", extra={"path": request.url.path, "method": request.method})
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "error": {
+                        "message": "Missing or invalid authorization header",
+                        "type": "authentication_error",
+                        "code": 401,
+                    }
+                },
+            )
+
+        token = auth.removeprefix("Bearer ")
+        try:
+            payload = self.token_service.verify_access_token(token)
+        except ValueError as e:
+            logger.warning("token validation failed", extra={"path": request.url.path, "error": str(e)})
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "error": {
+                        "message": str(e),
+                        "type": "authentication_error",
+                        "code": 401,
+                    }
+                },
+            )
+
+        request.state.user_id = payload["sub"]
         return await call_next(request)
 
 
@@ -44,6 +73,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             timestamps = self._requests.setdefault(client_ip, [])
             timestamps[:] = [t for t in timestamps if t > window]
             if len(timestamps) >= self.max_per_minute:
+                logger.warning("rate limit exceeded", extra={"ip": client_ip, "path": request.url.path})
                 return JSONResponse(
                     status_code=429,
                     content={
@@ -63,13 +93,39 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         start = time.time()
         response = await call_next(request)
         duration = time.time() - start
-        logger.info(
-            "request completed",
-            extra={
-                "method": request.method,
-                "path": request.url.path,
-                "status": response.status_code,
-                "duration_ms": round(duration * 1000),
-            },
-        )
+
+        body = b""
+        if response.status_code >= 400:
+            async for chunk in response.body_iterator:
+                body += chunk
+
+            response = Response(
+                content=body,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.media_type,
+            )
+
+            log_fn = logger.warning if response.status_code < 500 else logger.error
+            log_fn(
+                "request failed",
+                extra={
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status": response.status_code,
+                    "duration_ms": round(duration * 1000),
+                    "response_body": body.decode("utf-8", errors="replace"),
+                },
+            )
+        else:
+            logger.info(
+                "request completed",
+                extra={
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status": response.status_code,
+                    "duration_ms": round(duration * 1000),
+                },
+            )
+
         return response

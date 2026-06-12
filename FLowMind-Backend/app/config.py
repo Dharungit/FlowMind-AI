@@ -9,4 +9,8 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 60
     log_level: str = "INFO"
 
+    database_url: str = "postgresql+asyncpg://user:password@localhost:5432/flowmind"
+    google_client_id: str = ""
+    jwt_secret: str = "change-me-in-production"
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
