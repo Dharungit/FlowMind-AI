@@ -1,45 +1,45 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
-import { UserMessage } from "./user-message"
-import { AssistantMessage } from "./assistant-message"
-import { cn } from "@/lib/utils"
-import { ChevronDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useRef, useState } from "react";
+import { UserMessage } from "./user-message";
+import { AssistantMessage } from "./assistant-message";
+import { cn } from "@/lib/utils";
+import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Message {
-  role: "user" | "assistant"
-  content: string
+  role: "user" | "assistant";
+  content: string;
 }
 
 interface MessageThreadProps {
-  messages: Message[]
-  isStreaming?: boolean
+  messages: Message[];
+  isStreaming?: boolean;
 }
 
 export function MessageThread({ messages, isStreaming }: MessageThreadProps) {
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [userScrolledUp, setUserScrolledUp] = useState(false)
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [userScrolledUp, setUserScrolledUp] = useState(false);
 
   const scrollToBottom = () => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-    setUserScrolledUp(false)
-  }
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    setUserScrolledUp(false);
+  };
 
-  useEffect(() => {
-    if (!userScrolledUp) {
-      scrollToBottom()
-    }
-  }, [messages, userScrolledUp])
+  // useEffect(() => {
+  //   if (!userScrolledUp) {
+  //     scrollToBottom()
+  //   }
+  // }, [messages, userScrolledUp])
 
   const handleScroll = () => {
-    const container = containerRef.current
-    if (!container) return
-    const { scrollTop, scrollHeight, clientHeight } = container
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-    setUserScrolledUp(!isNearBottom)
-  }
+    const container = containerRef.current;
+    if (!container) return;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    setUserScrolledUp(!isNearBottom);
+  };
 
   return (
     <div className="relative flex-1 overflow-hidden">
@@ -57,7 +57,7 @@ export function MessageThread({ messages, isStreaming }: MessageThreadProps) {
               content={msg.content}
               isStreaming={isStreaming && i === messages.length - 1}
             />
-          )
+          ),
         )}
         <div ref={bottomRef} />
       </div>
@@ -75,5 +75,5 @@ export function MessageThread({ messages, isStreaming }: MessageThreadProps) {
         </div>
       )}
     </div>
-  )
+  );
 }

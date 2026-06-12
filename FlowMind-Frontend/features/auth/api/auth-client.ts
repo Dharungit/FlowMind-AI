@@ -77,6 +77,54 @@ class AuthApiClient {
     }
   }
 
+  async stream(
+    path: string,
+    body: unknown,
+    signal?: AbortSignal,
+  ): Promise<Response> {
+    const url = `${this.baseUrl}${path}`
+    const session = await getSession()
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    }
+
+    if (session?.accessToken) {
+      headers["Authorization"] = `Bearer ${session.accessToken}`
+    }
+
+    const options: RequestInit = {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal,
+    }
+
+    let res = await fetch(url, options)
+
+    if (res.status === 401 && session?.refreshToken) {
+      const refreshed = await this.tryRefresh(session.refreshToken)
+
+      if (refreshed) {
+        const newSession = await getSession()
+        if (newSession?.accessToken) {
+          headers["Authorization"] = `Bearer ${newSession.accessToken}`
+        }
+        res = await fetch(url, { ...options, headers })
+      } else {
+        await signOut({ callbackUrl: "/auth/signin" })
+        throw new ApiError(401, "Session expired")
+      }
+    }
+
+    if (!res.ok) {
+      const bodyText = await res.text()
+      throw new ApiError(res.status, bodyText || res.statusText)
+    }
+
+    return res
+  }
+
   get<T = unknown>(path: string): Promise<T> {
     return this.request<T>(path, { method: "GET" })
   }

@@ -50,8 +50,8 @@ export function ChatInput({
   }
 
   return (
-    <div className="border-t border-[#E5E5E5] bg-white p-4">
-      <div className="mx-auto flex max-w-3xl items-end gap-2">
+    <div className="rounded-2xl border border-[#E5E5E5] bg-white shadow-sm">
+      <div className="flex items-end gap-2 p-2">
         <div className="relative flex-1">
           <Textarea
             ref={textareaRef}
@@ -65,7 +65,7 @@ export function ChatInput({
               isStreaming ? "Generating..." : "Send a message..."
             }
             disabled={disabled || isStreaming}
-            className="min-h-[44px] max-h-[200px] resize-none rounded-xl border-[#E5E5E5] bg-white px-4 py-3 text-sm placeholder:text-[#737373] focus-visible:ring-[#2563EB] disabled:opacity-50"
+            className="min-h-[44px] max-h-[200px] resize-none border-0 bg-transparent px-3 py-3 text-sm placeholder:text-[#737373] focus-visible:ring-0 disabled:opacity-50"
             rows={1}
           />
         </div>
@@ -75,21 +75,21 @@ export function ChatInput({
             type="button"
             variant="default"
             size="icon"
-            className="h-[44px] w-[44px] shrink-0 rounded-xl bg-[#DC2626] hover:bg-[#DC2626]/90"
+            className="mb-1 h-[32px] w-[32px] shrink-0 rounded-lg bg-[#DC2626] hover:bg-[#DC2626]/90"
             onClick={onStop}
           >
-            <Square className="h-4 w-4 fill-white" />
+            <Square className="h-3.5 w-3.5 fill-white" />
           </Button>
         ) : (
           <Button
             type="button"
             variant="default"
             size="icon"
-            className="h-[44px] w-[44px] shrink-0 rounded-xl bg-[#2563EB] hover:bg-[#2563EB]/90"
+            className="mb-1 h-[32px] w-[32px] shrink-0 rounded-lg bg-[#2563EB] hover:bg-[#2563EB]/90"
             onClick={handleSubmit}
             disabled={!input.trim() || disabled}
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>
