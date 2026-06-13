@@ -1,9 +1,8 @@
 ## ADDED Requirements
 
-### Requirement: Route groups separate auth and chat layouts
+### Requirement: Route group separation
 
-Feature: RouteGroups
-Rule: The Next.js App Router uses route groups `(auth)` and `(chat)` to scope layout providers, without affecting URL paths.
+The Next.js App Router MUST use route groups `(auth)` and `(chat)` to scope layout providers without affecting URL paths.
 
 #### Scenario: Auth routes use auth layout
 - **GIVEN** the route `(auth)/login/page.tsx` exists
@@ -28,10 +27,9 @@ Rule: The Next.js App Router uses route groups `(auth)` and `(chat)` to scope la
 - **WHEN** Next.js resolves the route
 - **THEN** the parenthesized folder names are excluded from the URL path
 
-### Requirement: Existing routes are migrated to route groups
+### Requirement: Route migration
 
-Feature: RouteGroups
-Rule: The current `app/auth/signin/` is moved to `(auth)/login/`, and the root `app/page.tsx` becomes `(chat)/page.tsx`.
+Existing routes MUST be migrated to route groups: `app/auth/signin/` to `(auth)/login/`, and root `app/page.tsx` to `(chat)/page.tsx`.
 
 #### Scenario: Sign-in page is accessible at /login
 - **GIVEN** the page file is at `src/app/(auth)/login/page.tsx`

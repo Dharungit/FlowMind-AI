@@ -1,9 +1,8 @@
 ## ADDED Requirements
 
-### Requirement: Auth state is exposed via AuthContext
+### Requirement: Auth state exposure
 
-Feature: AuthStateStore
-Rule: AuthContext provides a unified useAuth() hook facade that wraps the existing React Query hooks (useCurrentUser, useLogin, useLogout) and the next-auth SessionProvider.
+AuthContext MUST provide a unified useAuth() hook facade that wraps the existing React Query hooks (useCurrentUser, useLogin, useLogout) and the next-auth SessionProvider.
 
 #### Scenario: Authenticated user available
 - **GIVEN** a user is authenticated with a valid session
@@ -38,10 +37,9 @@ Rule: AuthContext provides a unified useAuth() hook facade that wraps the existi
 - **AND** the React Query cache is cleared
 - **AND** the next-auth session is invalidated
 
-### Requirement: AuthContext delegates server state to React Query
+### Requirement: AuthContext server state delegation
 
-Feature: AuthStateStore
-Rule: AuthContext is a thin wrapper — it does not duplicate user state. React Query remains the source of truth for server data.
+AuthContext MUST be a thin wrapper that does not duplicate user state. React Query MUST remain the source of truth for server data.
 
 #### Scenario: React Query refetch updates auth context
 - **GIVEN** the user profile changes on the backend

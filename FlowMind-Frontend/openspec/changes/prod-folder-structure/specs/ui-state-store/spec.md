@@ -2,8 +2,7 @@
 
 ### Requirement: Sidebar toggle state
 
-Feature: UIStateStore
-Rule: The UI store manages sidebar visibility via Context + useReducer, accessible to any component via the useUI() hook.
+The UI store MUST manage sidebar visibility via Context + useReducer, accessible to any component via the useUI() hook.
 
 #### Scenario: Sidebar is closed by default on mobile
 - **GIVEN** the viewport width is less than 768px
@@ -26,10 +25,9 @@ Rule: The UI store manages sidebar visibility via Context + useReducer, accessib
 - **WHEN** a component dispatches the CLOSE_SIDEBAR action
 - **THEN** sidebarOpen becomes false
 
-### Requirement: Modal management
+### Requirement: Modal state management
 
-Feature: UIStateStore
-Rule: The UI store tracks which modal dialog is currently active.
+The UI store MUST track which modal dialog is currently active via the activeModal state.
 
 #### Scenario: Open a modal
 - **GIVEN** no modal is active (activeModal is null)

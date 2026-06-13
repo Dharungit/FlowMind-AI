@@ -52,13 +52,19 @@ async def google_auth(
     user_service: UserService = Depends(get_user_service),
     session_service: SessionService = Depends(get_session_service),
 ):
+    token_prefix = body.id_token[:20] + "..." if body.id_token and len(body.id_token) > 20 else "none"
+    logger.info("google auth request received", extra={"id_token_prefix": token_prefix})
+
     if not settings.google_client_id:
         logger.error("GOOGLE_CLIENT_ID is not configured")
         raise _auth_error("Google OAuth is not configured")
 
+    logger.info("google client id present, proceeding with token verification")
+
     try:
         req = google_requests.Request()
         info = id_token.verify_oauth2_token(body.id_token, req, settings.google_client_id)
+        logger.info("google token verified successfully", extra={"audience": info.get("aud"), "issuer": info.get("iss")})
     except ValueError as e:
         logger.warning("google token verification failed", extra={"error": str(e)})
         raise _auth_error(str(e))
@@ -68,6 +74,8 @@ async def google_auth(
     name = info.get("name", email.split("@")[0] if email else "User")
     picture = info.get("picture")
 
+    logger.info("google token payload extracted", extra={"sub": google_sub, "email": email, "has_picture": picture is not None})
+
     user = await user_service.find_or_create_by_google_profile(
         google_sub=google_sub,
         email=email,
@@ -75,12 +83,16 @@ async def google_auth(
         avatar_url=picture,
     )
 
+    logger.info("user resolved", extra={"user_id": str(user.id), "is_new": user.created_at == user.updated_at})
+
     access_token = token_service.generate_access_token(str(user.id), user.email)
     refresh_token = token_service.generate_refresh_token()
     refresh_token_hash = token_service.hash_refresh_token(refresh_token)
     expires_at = token_service.get_refresh_token_expiry()
 
     await session_service.create(str(user.id), refresh_token_hash, expires_at)
+
+    logger.info("session created, returning auth response", extra={"user_id": str(user.id)})
 
     return AuthResponse(
         access_token=access_token,

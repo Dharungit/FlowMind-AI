@@ -33,7 +33,7 @@ class AuthApiClient {
         }
         res = await fetch(url, { ...options, headers })
       } else {
-        await signOut({ callbackUrl: "/auth/signin" })
+        await signOut({ callbackUrl: "/login" })
         throw new ApiError(401, "Session expired")
       }
     }
@@ -112,7 +112,7 @@ class AuthApiClient {
         }
         res = await fetch(url, { ...options, headers })
       } else {
-        await signOut({ callbackUrl: "/auth/signin" })
+        await signOut({ callbackUrl: "/login" })
         throw new ApiError(401, "Session expired")
       }
     }
@@ -144,7 +144,7 @@ class AuthApiClient {
         console.warn("Logout API call failed")
       }
     }
-    await signOut({ callbackUrl: "/auth/signin" })
+    await signOut({ callbackUrl: "/login" })
   }
 }
 

@@ -2,8 +2,7 @@
 
 ### Requirement: Typed environment variable access
 
-Feature: TypeSafeEnv
-Rule: All environment variable access uses typed exports from `src/config/env.ts`, preventing runtime errors from misspelled variable names.
+All environment variable access MUST use typed exports from `src/config/env.ts`, preventing runtime errors from misspelled variable names.
 
 #### Scenario: Access a public environment variable
 - **GIVEN** the environment variable `NEXT_PUBLIC_BACKEND_URL` is set to "http://localhost:8000"
@@ -21,10 +20,9 @@ Rule: All environment variable access uses typed exports from `src/config/env.ts
 - **WHEN** code accesses the corresponding env property
 - **THEN** it returns the configured default value without throwing
 
-### Requirement: .env.example documents required variables
+### Requirement: Environment variable documentation
 
-Feature: TypeSafeEnv
-Rule: A `.env.example` file at the project root lists all required environment variables with placeholder values and descriptions.
+A `.env.example` file at the project root MUST list all required environment variables with placeholder values and descriptions.
 
 #### Scenario: Developer onboarding
 - **GIVEN** a developer clones the repository for the first time

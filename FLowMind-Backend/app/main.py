@@ -22,11 +22,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if settings is None:
         settings = Settings(provider_api_key=os.getenv("PROVIDER_API_KEY", ""))
 
+    log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
+
     structlog.configure(
-        wrapper_class=structlog.make_filtering_bound_logger(
-            getattr(logging, settings.log_level.upper(), logging.INFO)
-        ),
+        wrapper_class=structlog.make_filtering_bound_logger(log_level),
     )
+
+    root = logging.getLogger("flowmind")
+    root.setLevel(log_level)
+    if not root.handlers:
+        handler = logging.StreamHandler()
+        handler.setLevel(log_level)
+        handler.setFormatter(logging.Formatter("%(levelname)s | %(message)s"))
+        root.addHandler(handler)
+        root.propagate = False
 
     token_service = TokenService(settings)
 

@@ -2,8 +2,7 @@
 
 ### Requirement: App-level theme and config state
 
-Feature: AppStateStore
-Rule: The app store provides theme preference and application configuration to all descendant components via a Context + useReducer pattern.
+The system MUST provide theme preference and application configuration to all descendant components via a Context + useReducer pattern (AppProvider + useApp).
 
 #### Scenario: Theme preference is available app-wide
 - **GIVEN** the AppProvider wraps the application root
@@ -21,10 +20,9 @@ Rule: The app store provides theme preference and application configuration to a
 - **WHEN** a component dispatches `SET_THEME` action with value "dark"
 - **THEN** all subscribed components re-render with theme "dark"
 
-### Requirement: App provider is the outermost wrapper
+### Requirement: App provider hierarchy
 
-Feature: AppStateStore
-Rule: AppProvider must wrap all other providers to ensure config and theme are available everywhere.
+AppProvider MUST be the outermost context provider in the component tree, wrapping all other providers to ensure config and theme are available everywhere.
 
 #### Scenario: AppProvider wraps other providers
 - **GIVEN** the root layout renders

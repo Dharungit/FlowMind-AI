@@ -1,9 +1,8 @@
 ## ADDED Requirements
 
-### Requirement: Chat state is managed via ChatContext
+### Requirement: Chat state management
 
-Feature: ChatStateStore
-Rule: Chat state (messages array, streaming flag, error) is owned by a ChatContext + useReducer provider, replacing the inline useReducer in the existing use-chat.ts hook.
+Chat state (messages array, streaming flag, error) MUST be owned by a ChatContext + useReducer provider, replacing the inline useReducer in the existing use-chat.ts hook.
 
 #### Scenario: Send a message
 - **GIVEN** the user has typed a message in the chat input
@@ -39,10 +38,9 @@ Rule: Chat state (messages array, streaming flag, error) is owned by a ChatConte
 - **WHEN** the user sends a new message
 - **THEN** the error state is cleared
 
-### Requirement: ChatProvider wraps only chat routes
+### Requirement: ChatProvider scope
 
-Feature: ChatStateStore
-Rule: ChatProvider is mounted in the (chat) route group layout, not in the root layout, to avoid mounting chat state on auth pages.
+ChatProvider MUST be mounted in the (chat) route group layout, not in the root layout, to avoid mounting chat state on auth pages.
 
 #### Scenario: Chat state is scoped to chat routes
 - **GIVEN** the application has route groups configured

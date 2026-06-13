@@ -5,7 +5,7 @@ import type { NextRequest } from "next/server"
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  const isAuthPage = pathname.startsWith("/auth/")
+  const isAuthPage = pathname.startsWith("/login")
   const isApiAuth = pathname.startsWith("/api/auth/")
   const isStatic =
     pathname.startsWith("/_next/") ||
@@ -29,7 +29,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!isAuthPage && !isAuthenticated) {
-    const signInUrl = new URL("/auth/signin", request.url)
+    const signInUrl = new URL("/login", request.url)
     signInUrl.searchParams.set("callbackUrl", pathname)
     return NextResponse.redirect(signInUrl)
   }

@@ -26,10 +26,18 @@ JwtAuthMiddleware (validates JWT access tokens, skips public auth routes)
   │   POST /v1/auth/logout         (authenticated)
   │   GET  /v1/auth/me             (authenticated) ──► UserService ──► PostgreSQL
   │
-  └── POST /v1/chat/completions ──► ChatService ──► OpenAI SDK ──► LLM Provider
-                                        │
-                                    stream=True  → SSE StreamingResponse
-                                    stream=False → JSON ChatResponse
+  │
+  ├── POST /v1/conversations          (authenticated) ──► ConversationService ──► PostgreSQL
+  │   GET  /v1/conversations          (authenticated)
+  │   GET  /v1/conversations/{id}     (authenticated)
+  │   PUT  /v1/conversations/{id}     (authenticated)
+  │   DELETE /v1/conversations/{id}   (authenticated)
+  │
+  ├── POST /v1/conversations/{id}/messages  (authenticated) ──► MessageService ──► ChatService ──► LLM Provider
+  │   DELETE /v1/messages/{id}              (authenticated)      │
+  │                                                            └──► PostgreSQL
+  │
+  └── (legacy) POST /v1/chat/completions removed
 ```
 
 ---
@@ -40,25 +48,29 @@ JwtAuthMiddleware (validates JWT access tokens, skips public auth routes)
 app/
 ├── api/
 │   ├── auth.py             # POST /v1/auth/google, refresh, logout, GET /me
-│   └── chat.py             # POST /v1/chat/completions route
+│   └── chat.py             # Conversation + message CRUD endpoints
 ├── schemas/
 │   ├── auth.py             # Pydantic models for auth requests/responses
-│   └── chat.py             # Pydantic models (ChatMessage, ChatRequest, ChatResponse, ToolDef)
+│   ├── chat.py             # Pydantic models (ChatMessage, ChatRequest, ChatResponse, ToolDef)
+│   └── conversations.py    # Conversation + message request/response schemas
 ├── services/
-│   ├── chat.py             # ChatService — wraps AsyncOpenAI client
+│   ├── chat.py             # ChatService — wraps AsyncOpenAI client (internal only)
+│   ├── conversation.py     # ConversationService — create, list, get, update, delete conversations
+│   ├── message.py          # MessageService — add message with auto-persist, delete messages
 │   ├── token.py            # TokenService — JWT generation, verification, refresh tokens
 │   ├── user.py             # UserService — create/update/lookup users
 │   └── session.py          # SessionService — create, rotate, revoke sessions
 ├── config.py               # Settings via pydantic-settings
 ├── database.py             # Async SQLAlchemy engine + session factory
-├── models.py               # User + Session SQLAlchemy models
+├── models.py               # User, Session, Conversation, Message SQLAlchemy models
 ├── middleware.py           # JwtAuthMiddleware, RateLimitMiddleware, LoggingMiddleware
 └── main.py                 # FastAPI app factory + ASGI entry point
 
 alembic/                    # Database migrations (async)
 ├── env.py
 ├── versions/
-│   └── ..._create_users_and_sessions_tables.py
+│   ├── ..._create_users_and_sessions_tables.py
+│   └── ..._add_conversations_and_messages_tables.py
 └── alembic.ini
 
 tests/
@@ -211,82 +223,180 @@ Return the current user profile. Requires a valid JWT access token in the `Autho
 
 ---
 
-### POST /v1/chat/completions
+### Conversations
 
-OpenAI-compatible chat completions. Requires a valid JWT access token in the `Authorization` header.
+All conversation endpoints require a valid JWT access token in the `Authorization: Bearer <token>` header.
+
+---
+
+#### POST /v1/conversations
+
+Create a new conversation.
 
 **Request:**
+```json
+{"title": "My Chat"}
+```
 
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `title` | string | no | `"New Conversation"` | Conversation title |
+
+**Response (201):**
 ```json
 {
-  "model": "deepseek-chat",
+  "id": "uuid",
+  "title": "My Chat",
+  "created_at": "2026-06-13T02:15:00+00:00",
+  "updated_at": "2026-06-13T02:15:00+00:00"
+}
+```
+
+---
+
+#### GET /v1/conversations
+
+List the authenticated user's conversations, ordered by most recently updated.
+
+**Response (200):**
+```json
+[
+  {
+    "id": "uuid",
+    "title": "My Chat",
+    "created_at": "2026-06-13T02:15:00+00:00",
+    "updated_at": "2026-06-13T02:15:00+00:00"
+  }
+]
+```
+
+Returns an empty array if no conversations exist.
+
+---
+
+#### GET /v1/conversations/{id}
+
+Get a single conversation with all its messages.
+
+**Response (200):**
+```json
+{
+  "id": "uuid",
+  "title": "My Chat",
+  "created_at": "2026-06-13T02:15:00+00:00",
+  "updated_at": "2026-06-13T02:15:00+00:00",
   "messages": [
-    {"role": "system", "content": "You are a helpful assistant."},
-    {"role": "user", "content": "Hello!"}
-  ],
-  "stream": true,
-  "temperature": 0.7,
-  "max_tokens": 1024,
-  "tools": [
     {
-      "type": "function",
-      "function": {
-        "name": "get_weather",
-        "description": "Get current weather",
-        "parameters": {
-          "type": "object",
-          "properties": {"location": {"type": "string"}},
-          "required": ["location"]
-        }
-      }
+      "id": "uuid",
+      "role": "user",
+      "content": "Hello!",
+      "metadata": null,
+      "created_at": "2026-06-13T02:15:00+00:00"
+    },
+    {
+      "id": "uuid",
+      "role": "assistant",
+      "content": "Hi! How can I help?",
+      "metadata": null,
+      "created_at": "2026-06-13T02:15:05+00:00"
     }
   ]
 }
 ```
 
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `model` | string | no | provider default | Model identifier |
-| `messages` | array | yes | — | Array of `{role, content, name?, tool_call_id?}` |
-| `stream` | boolean | no | `true` | SSE streaming |
-| `temperature` | float | no | provider default | Sampling temperature |
-| `max_tokens` | int | no | provider default | Max response tokens |
-| `tools` | array | no | — | Function definitions |
+**Errors:** 404 — conversation not found or owned by another user.
 
-**Non-streaming response:**
+---
 
+#### PUT /v1/conversations/{id}
+
+Update the conversation title.
+
+**Request:**
+```json
+{"title": "Updated Title"}
+```
+
+**Response (200):**
 ```json
 {
-  "id": "chatcmpl-123abc",
-  "object": "chat.completion",
-  "choices": [{
-    "index": 0,
-    "message": {"role": "assistant", "content": "Hello! How can I help?"},
-    "finish_reason": "stop"
-  }],
-  "usage": {"prompt_tokens": 9, "completion_tokens": 9, "total_tokens": 18}
+  "id": "uuid",
+  "title": "Updated Title",
+  "created_at": "2026-06-13T02:15:00+00:00",
+  "updated_at": "2026-06-13T02:15:10+00:00"
 }
 ```
 
-**Streaming response** (SSE, `text/event-stream`):
+**Errors:** 404 — conversation not found or owned by another user.
 
+---
+
+#### DELETE /v1/conversations/{id}
+
+Delete a conversation and all its messages.
+
+**Response:** `204 No Content`
+
+**Errors:** 404 — conversation not found or owned by another user.
+
+---
+
+### Messages
+
+#### POST /v1/conversations/{id}/messages
+
+Send a new message to a conversation. The backend appends your message to the full conversation history loaded from the database, calls the LLM internally, persists the user message and the assistant reply, and returns the assistant's response.
+
+**Request:**
+```json
+{
+  "messages": [
+    {"role": "user", "content": "Tell me a joke"}
+  ]
+}
 ```
-data: {"id":"...","object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"},"index":0}]}
 
-data: {"id":"...","object":"chat.completion.chunk","choices":[{"delta":{"content":"! How can I help?"},"index":0}]}
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `messages` | array | yes | Array of `{role, content}`, typically just the new user message |
 
-data: [DONE]
+**Response (200):**
+```json
+{
+  "id": "uuid",
+  "role": "assistant",
+  "content": "Why did the chicken cross the road? To get to the other side!",
+  "metadata": null,
+  "created_at": "2026-06-13T02:15:05+00:00"
+}
 ```
 
-**Error shape:**
+**Errors:** 404 — conversation not found or owned by another user.
+
+---
+
+#### DELETE /v1/messages/{id}
+
+Delete a single message from a conversation.
+
+**Response:** `204 No Content`
+
+**Errors:** 404 — message not found or not owned by the authenticated user.
+
+---
+
+### Error Shape
+
+All API errors follow this shape:
 
 ```json
-{"error": {"message": "...", "type": "...", "code": 401|429|500}}
+{"error": {"message": "...", "type": "...", "code": 401|404|429|500}}
 ```
 
 | Code | `type` | Description |
 |---|---|---|
 | 401 | `authentication_error` | Missing/invalid/expired JWT or refresh token |
+| 404 | — | Resource not found |
 | 429 | `rate_limit_error` | Rate limit exceeded |
 | 422 | — | Body validation error (FastAPI native) |
 | 500 | `internal_server_error` | Unhandled error |
@@ -350,7 +460,7 @@ pytest -v
 | `test_schemas.py` | Unit | Model creation, serialization round-trip |
 | `test_chat_service.py` | Unit | Non-streaming, streaming, model override (mocked) |
 | `test_middleware.py` | Integration | JWT auth (missing, valid, expired, tampered), public endpoints |
-| `test_api.py` | Integration | Health check, validation, auth endpoints, full mocked flow |
+| `test_api.py` | Integration | Health check, conversation CRUD, auth endpoints, legacy route removal |
 | `test_token_service.py` | Unit | JWT generation, verification, expiry, refresh token hashing |
 | `test_user_service.py` | Unit | User create/update/lookup (mocked DB) |
 | `test_session_service.py` | Unit | Session create, find, invalidate (mocked DB) |
@@ -362,11 +472,19 @@ All tests use mocked dependencies — no real API calls or database required.
 ## Docker
 
 ```bash
-docker build -t flowmind-backend .
-docker run -p 8000:8000 -e PROVIDER_API_KEY=your-key flowmind-backend
+# 1. Copy and edit environment variables
+cp .env.example .env
+# Edit .env — at minimum set PROVIDER_API_KEY, GOOGLE_CLIENT_ID, JWT_SECRET
+
+# 2. Start everything (PostgreSQL + API)
+docker compose up --build
 ```
 
-Image: `python:3.12-slim`, exposes `8000`, runs uvicorn.
+This starts two services:
+- **PostgreSQL 16** (`db`) on port 5432 with a healthcheck
+- **FastAPI** (`api`) on port 8000 — auto-runs Alembic migrations on boot, then serves via uvicorn
+
+The `api` service waits for `db` to be healthy before starting, so boot order is handled automatically. No separate migration step required.
 
 ---
 

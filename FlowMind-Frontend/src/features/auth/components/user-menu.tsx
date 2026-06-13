@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react"
 import { LogOut, Mail } from "lucide-react"
 import { useLogout } from "../hooks/use-auth"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/shared/Avatar"
 import {
   Popover,
   PopoverTrigger,
