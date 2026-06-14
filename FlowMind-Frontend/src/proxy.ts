@@ -11,7 +11,6 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/public/")
-
   if (isApiAuth || isStatic) {
     return NextResponse.next()
   }
