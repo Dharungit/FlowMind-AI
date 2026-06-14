@@ -136,6 +136,17 @@ class AuthApiClient {
     })
   }
 
+  put<T = unknown>(path: string, body?: unknown): Promise<T> {
+    return this.request<T>(path, {
+      method: "PUT",
+      body: body ? JSON.stringify(body) : undefined,
+    })
+  }
+
+  delete<T = unknown>(path: string): Promise<T> {
+    return this.request<T>(path, { method: "DELETE" })
+  }
+
   async logout(refreshToken?: string | null): Promise<void> {
     if (refreshToken) {
       try {

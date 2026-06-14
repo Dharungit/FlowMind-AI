@@ -2,36 +2,23 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useConversationContext } from "@/store/conversation/ConversationContext"
-import * as mockService from "../conversations.mock"
-import type { ConversationCreate, ConversationUpdate } from "../types"
+import { conversationClient } from "../api/conversation-client"
+import type { ConversationUpdate } from "../types"
 
-const CONVERSATIONS_KEY = ["conversations"] as const
+export const CONVERSATIONS_KEY = ["conversations"] as const
 
 export function useConversationList() {
   return useQuery({
     queryKey: CONVERSATIONS_KEY,
-    queryFn: mockService.getConversations,
+    queryFn: conversationClient.list.bind(conversationClient),
   })
 }
 
 export function useConversation(id: string | null) {
   return useQuery({
     queryKey: [...CONVERSATIONS_KEY, id],
-    queryFn: () => (id ? mockService.getConversation(id) : null),
+    queryFn: () => (id ? conversationClient.get(id) : null),
     enabled: !!id,
-  })
-}
-
-export function useCreateConversation() {
-  const queryClient = useQueryClient()
-  const { dispatch } = useConversationContext()
-
-  return useMutation({
-    mutationFn: (data: ConversationCreate) => mockService.createConversation(data),
-    onSuccess: (newConversation) => {
-      queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY })
-      dispatch({ type: "SET_ACTIVE", conversationId: newConversation.id })
-    },
   })
 }
 
@@ -40,7 +27,7 @@ export function useUpdateConversation() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: ConversationUpdate }) =>
-      mockService.updateConversation(id, data),
+      conversationClient.update(id, data.title),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY })
     },
@@ -52,7 +39,7 @@ export function useDeleteConversation() {
   const { state, dispatch } = useConversationContext()
 
   return useMutation({
-    mutationFn: (id: string) => mockService.deleteConversation(id),
+    mutationFn: (id: string) => conversationClient.delete(id),
     onSuccess: (_result, deletedId) => {
       queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY })
       if (state.activeConversationId === deletedId) {

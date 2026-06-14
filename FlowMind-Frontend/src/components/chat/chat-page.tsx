@@ -3,32 +3,39 @@
 import { useCallback } from "react"
 import { MessageThread } from "@/components/chat/message-thread"
 import { ChatInput } from "@/components/chat/chat-input"
-import { useChat } from "@/features/chat/hooks/use-chat"
 import { useConversationContext } from "@/store/conversation/ConversationContext"
-import { useCreateConversation } from "@/features/conversations/hooks/useConversations"
+import { useConversation } from "@/features/conversations/hooks/useConversations"
+import { useSendMessage } from "@/features/conversations/hooks/useSendMessage"
 import { MessageSquare } from "lucide-react"
+import { Spinner } from "@/components/shared/Spinner"
 
 export function ChatPage() {
-  const { messages, isStreaming, error, send, stop } = useChat()
   const { state: convState } = useConversationContext()
-  const createConversation = useCreateConversation()
-  const hasMessages = messages.length > 0
+  const { data: conversation, isLoading } = useConversation(convState.activeConversationId)
+  const sendMessage = useSendMessage()
 
-  const handleSend = useCallback(async (content: string) => {
-    if (!convState.activeConversationId && !hasMessages) {
-      await createConversation.mutateAsync({ title: "New Conversation" })
-    }
-    send(content)
-  }, [convState.activeConversationId, hasMessages, createConversation, send])
+  const messages = conversation?.messages ?? []
+  const hasMessages = messages.length > 0
+  const error = sendMessage.error?.message ?? null
+  const isSending = sendMessage.isPending
+
+  const handleSend = useCallback((content: string) => {
+    sendMessage.mutate({ content, activeConversationId: convState.activeConversationId })
+  }, [convState.activeConversationId, sendMessage])
+
+  if (isLoading && convState.activeConversationId) {
+    return (
+      <div className="flex h-full items-center justify-center bg-white">
+        <Spinner />
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-full flex-col bg-white">
       {hasMessages ? (
         <div className="flex min-h-0 flex-1 flex-col">
-          <MessageThread
-            messages={messages}
-            isStreaming={isStreaming}
-          />
+          <MessageThread messages={messages} />
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-4">
@@ -58,8 +65,7 @@ export function ChatPage() {
         <div className="mx-auto max-w-3xl">
           <ChatInput
             onSend={handleSend}
-            onStop={stop}
-            isStreaming={isStreaming}
+            disabled={isSending}
           />
         </div>
       </div>

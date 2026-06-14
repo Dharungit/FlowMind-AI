@@ -3,21 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import { UserMessage } from "./user-message";
 import { AssistantMessage } from "./assistant-message";
-import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/shared/Spinner";
 
 interface Message {
-  role: "user" | "assistant";
-  content: string;
+  role: string;
+  content?: string | null;
 }
 
 interface MessageThreadProps {
   messages: Message[];
-  isStreaming?: boolean;
+  isLoading?: boolean;
 }
 
-export function MessageThread({ messages, isStreaming }: MessageThreadProps) {
+export function MessageThread({ messages, isLoading }: MessageThreadProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [userScrolledUp, setUserScrolledUp] = useState(false);
@@ -27,11 +27,11 @@ export function MessageThread({ messages, isStreaming }: MessageThreadProps) {
     setUserScrolledUp(false);
   };
 
-  // useEffect(() => {
-  //   if (!userScrolledUp) {
-  //     scrollToBottom()
-  //   }
-  // }, [messages, userScrolledUp])
+  useEffect(() => {
+    if (!userScrolledUp) {
+      scrollToBottom()
+    }
+  }, [messages, userScrolledUp])
 
   const handleScroll = () => {
     const container = containerRef.current;
@@ -40,6 +40,14 @@ export function MessageThread({ messages, isStreaming }: MessageThreadProps) {
     const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
     setUserScrolledUp(!isNearBottom);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Spinner />
+      </div>
+    )
+  }
 
   return (
     <div className="relative flex-1 overflow-hidden">
@@ -50,13 +58,9 @@ export function MessageThread({ messages, isStreaming }: MessageThreadProps) {
       >
         {messages.map((msg, i) =>
           msg.role === "user" ? (
-            <UserMessage key={i} content={msg.content} />
+            <UserMessage key={i} content={msg.content ?? ""} />
           ) : (
-            <AssistantMessage
-              key={i}
-              content={msg.content}
-              isStreaming={isStreaming && i === messages.length - 1}
-            />
+            <AssistantMessage key={i} content={msg.content ?? ""} />
           ),
         )}
         <div ref={bottomRef} />
