@@ -10,7 +10,7 @@ from app.config import Settings
 class TokenService:
     def __init__(self, settings: Settings):
         self.secret = settings.jwt_secret
-        self.access_token_ttl = 15
+        self.access_token_ttl = 30
         self.refresh_token_ttl = 7
 
     def generate_access_token(self, user_id: str, email: str) -> str:

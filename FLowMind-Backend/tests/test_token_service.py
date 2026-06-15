@@ -24,12 +24,12 @@ def test_generate_access_token_returns_jwt(token_service):
     assert payload["email"] == "test@example.com"
 
 
-def test_generate_access_token_has_15_min_expiry(token_service):
+def test_generate_access_token_has_30_min_expiry(token_service):
     token = token_service.generate_access_token("user-123", "test@example.com")
     payload = jwt.decode(token, "test-secret-key-for-testing", algorithms=["HS256"])
     exp = payload["exp"]
     iat = payload["iat"]
-    assert exp - iat == 15 * 60
+    assert exp - iat == 30 * 60
 
 
 def test_verify_valid_token(token_service):
