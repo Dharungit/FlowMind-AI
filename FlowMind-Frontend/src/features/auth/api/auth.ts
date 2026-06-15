@@ -28,21 +28,7 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async jwt({ token, account, trigger, session }) {
-      console.log("[AUTH DEBUG] jwt callback", {
-        trigger,
-        hasAccount: !!account,
-        hasIdToken: !!account?.id_token,
-        hasExpiresAt: !!token.expiresAt,
-        expiresAt: token.expiresAt
-          ? new Date(token.expiresAt).toISOString()
-          : null,
-        now: new Date().toISOString(),
-        isExpired: token.expiresAt ? Date.now() > token.expiresAt : null,
-        hasRefreshToken: !!token.refreshToken,
-      });
-
       if (trigger === "update" && session) {
-        console.log("[AUTH DEBUG] jwt update handler", { session });
         return {
           ...token,
           accessToken: session.accessToken ?? token.accessToken,
@@ -52,10 +38,6 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (account?.id_token) {
-        console.log(
-          "[AUTH DEBUG] jwt initial exchange - calling POST /v1/auth/google",
-        );
-
         const res = await fetch(`${API_URL}/v1/auth/google`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -75,11 +57,10 @@ export const authOptions: NextAuthOptions = {
           accessToken: data.access_token,
           refreshToken: data.refresh_token,
           user: data.user,
-          expiresAt: Date.now() + 2 * 60 * 1000,
+          expiresAt: Date.now() + 30 * 60 * 1000,
         };
       }
 
-      console.log("[AUTH DEBUG] jwt returning token unchanged");
       return token;
     },
     async session({ session, token }) {

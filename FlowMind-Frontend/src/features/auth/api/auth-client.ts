@@ -25,23 +25,14 @@ class AuthApiClient {
     let res: Response | null = null
     try {
       res = await fetch(url, { ...options, headers })
-    } catch (err) {
-      console.log("[AUTH DEBUG] request fetch threw", {
-        path,
-        error: String(err),
-      })
+    } catch {
+      res = null
     }
 
     if (res?.status === 401 || res === null) {
       if (session?.refreshToken) {
-        console.log("[AUTH DEBUG] request got 401 or fetch failed", {
-          path,
-          status: res?.status,
-          hasRefreshToken: !!session?.refreshToken,
-        })
         const refreshed = await this.tryRefresh(session.refreshToken)
 
-        console.log("[AUTH DEBUG] refresh attempt result", { refreshed })
         if (refreshed) {
           const newSession = await getSession()
           if (newSession?.accessToken) {
@@ -50,7 +41,6 @@ class AuthApiClient {
           try {
             res = await fetch(url, { ...options, headers })
           } catch {
-            console.log("[AUTH DEBUG] request retry fetch also threw")
             throw new ApiError(401, "Request failed after refresh")
           }
         } else {
@@ -75,15 +65,7 @@ class AuthApiClient {
   }
 
   private async tryRefresh(refreshToken: string): Promise<boolean> {
-    console.log("[AUTH DEBUG] tryRefresh starting", {
-      refreshTokenExists: !!refreshToken,
-      refreshTokenPrefix: refreshToken?.substring(0, 10) + "...",
-    })
-
-    if (this.refreshPromise) {
-      console.log("[AUTH DEBUG] tryRefresh - waiting for in-flight refresh")
-      return this.refreshPromise
-    }
+    if (this.refreshPromise) return this.refreshPromise
 
     this.refreshPromise = (async () => {
       try {
@@ -95,21 +77,12 @@ class AuthApiClient {
           } satisfies RefreshRequest),
         })
 
-        console.log("[AUTH DEBUG] POST /v1/auth/refresh response", {
-          ok: res.ok,
-          status: res.status,
-        })
-
         if (!res.ok) return false
 
         const data = await res.json()
 
         const csrfRes = await fetch("/api/auth/csrf")
         const { csrfToken } = await csrfRes.json()
-
-        console.log("[AUTH DEBUG] CSRF token fetched", {
-          csrfTokenExists: !!csrfToken,
-        })
 
         const updateRes = await fetch("/api/auth/session", {
           method: "POST",
@@ -119,22 +92,14 @@ class AuthApiClient {
             data: {
               accessToken: data.access_token,
               refreshToken: data.refresh_token,
-              expiresAt: Date.now() + 2 * 60 * 1000,
+              expiresAt: Date.now() + 30 * 60 * 1000,
             },
             json: true,
           }),
         })
 
-        console.log("[AUTH DEBUG] POST /api/auth/session update response", {
-          ok: updateRes.ok,
-          status: updateRes.status,
-        })
-
-        console.log("[AUTH DEBUG] tryRefresh result", { success: updateRes.ok })
-
         return updateRes.ok
       } catch {
-        console.log("[AUTH DEBUG] tryRefresh - error caught, returning false")
         return false
       } finally {
         this.refreshPromise = null
@@ -170,23 +135,14 @@ class AuthApiClient {
     let res: Response | null = null
     try {
       res = await fetch(url, options)
-    } catch (err) {
-      console.log("[AUTH DEBUG] stream fetch threw", {
-        path,
-        error: String(err),
-      })
+    } catch {
+      res = null
     }
 
     if (res?.status === 401 || res === null) {
       if (session?.refreshToken) {
-        console.log("[AUTH DEBUG] stream got 401 or fetch failed", {
-          path,
-          status: res?.status,
-          hasRefreshToken: !!session?.refreshToken,
-        })
         const refreshed = await this.tryRefresh(session.refreshToken)
 
-        console.log("[AUTH DEBUG] stream refresh attempt result", { refreshed })
         if (refreshed) {
           const newSession = await getSession()
           if (newSession?.accessToken) {
@@ -195,7 +151,6 @@ class AuthApiClient {
           try {
             res = await fetch(url, { ...options, headers })
           } catch {
-            console.log("[AUTH DEBUG] stream retry fetch also threw")
             throw new ApiError(401, "Stream failed after refresh")
           }
         } else {
