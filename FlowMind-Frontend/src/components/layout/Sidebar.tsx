@@ -32,6 +32,7 @@ export function Sidebar() {
   const handleSelectConversation = (conversation: ConversationResponse) => {
     router.push(`/c/${conversation.id}`)
     convDispatch({ type: "SET_ACTIVE", conversationId: conversation.id })
+    dispatch({ type: "OPEN_SIDEBAR" })
   }
 
   return (

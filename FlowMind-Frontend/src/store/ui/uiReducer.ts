@@ -5,6 +5,7 @@ export interface UIState {
 
 export type UIAction =
   | { type: "TOGGLE_SIDEBAR" }
+  | { type: "OPEN_SIDEBAR" }
   | { type: "CLOSE_SIDEBAR" }
   | { type: "OPEN_MODAL"; modal: string }
   | { type: "CLOSE_MODAL" };
@@ -18,6 +19,8 @@ export function uiReducer(state: UIState, action: UIAction): UIState {
   switch (action.type) {
     case "TOGGLE_SIDEBAR":
       return { ...state, sidebarOpen: !state.sidebarOpen };
+    case "OPEN_SIDEBAR":
+      return { ...state, sidebarOpen: true };
     case "CLOSE_SIDEBAR":
       return { ...state, sidebarOpen: false };
     case "OPEN_MODAL":

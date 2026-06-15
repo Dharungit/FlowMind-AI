@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
 import { useConversationContext } from "@/store/conversation/ConversationContext"
 import { conversationClient } from "../api/conversation-client"
 import type { MessageItem, MessageResponse } from "../types"
@@ -14,6 +15,7 @@ interface SendMessageInput {
 
 export function useSendMessage() {
   const queryClient = useQueryClient()
+  const router = useRouter()
   const { dispatch } = useConversationContext()
 
   return useMutation<MessageResponse, Error, SendMessageInput>({
@@ -24,6 +26,7 @@ export function useSendMessage() {
         const conv = await conversationClient.create()
         conversationId = conv.id
         dispatch({ type: "SET_ACTIVE", conversationId })
+        router.replace(`/c/${conversationId}`)
       }
 
       const message: MessageItem = { role: "user", content }
