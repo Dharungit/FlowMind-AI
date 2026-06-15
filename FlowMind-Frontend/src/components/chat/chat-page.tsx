@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { MessageThread } from "@/components/chat/message-thread";
 import { ChatInput } from "@/components/chat/chat-input";
 import { TypingIndicator } from "@/components/chat/typing-indicator";
@@ -11,15 +11,15 @@ import { MessageSquare } from "lucide-react";
 import { Spinner } from "@/components/shared/Spinner";
 
 export function ChatPage() {
-  const { state: convState } = useConversationContext();
+  const { state: convState, dispatch: convDispatch } = useConversationContext();
   const { data: conversation, isLoading } = useConversation(
     convState.activeConversationId,
   );
   const sendMessage = useSendMessage();
 
-  const [pendingMessages, setPendingMessages] = useState<
-    { role: string; content: string }[]
-  >([]);
+  const pendingMessages = convState.pendingUserMessage
+    ? [convState.pendingUserMessage]
+    : [];
 
   const messages = conversation?.messages ?? [];
   const error = sendMessage.error?.message ?? null;
@@ -30,19 +30,22 @@ export function ChatPage() {
 
   useEffect(() => {
     if (messages.length > 0) {
-      setPendingMessages([]);
+      convDispatch({ type: "SET_PENDING_MESSAGE", message: null });
     }
-  }, [messages]);
+  }, [messages, convDispatch]);
 
   const handleSend = useCallback(
     (content: string) => {
-      setPendingMessages((prev) => [...prev, { role: "user", content }]);
+      convDispatch({
+        type: "SET_PENDING_MESSAGE",
+        message: { role: "user", content },
+      });
       sendMessage.mutate({
         content,
         activeConversationId: convState.activeConversationId,
       });
     },
-    [convState.activeConversationId, sendMessage],
+    [convState.activeConversationId, sendMessage, convDispatch],
   );
 
   if (

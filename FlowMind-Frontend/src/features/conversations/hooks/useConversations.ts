@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
 import { useConversationContext } from "@/store/conversation/ConversationContext"
 import { conversationClient } from "../api/conversation-client"
 import type { ConversationUpdate } from "../types"
@@ -36,6 +37,7 @@ export function useUpdateConversation() {
 
 export function useDeleteConversation() {
   const queryClient = useQueryClient()
+  const router = useRouter()
   const { state, dispatch } = useConversationContext()
 
   return useMutation({
@@ -44,6 +46,7 @@ export function useDeleteConversation() {
       queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY })
       if (state.activeConversationId === deletedId) {
         dispatch({ type: "CLEAR_ACTIVE" })
+        router.push("/")
       }
     },
   })

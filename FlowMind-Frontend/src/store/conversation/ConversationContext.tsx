@@ -4,14 +4,17 @@ import { createContext, useContext, useReducer, type ReactNode } from "react"
 
 export interface ConversationState {
   activeConversationId: string | null
+  pendingUserMessage: { role: string; content: string } | null
 }
 
 export type ConversationAction =
   | { type: "SET_ACTIVE"; conversationId: string }
   | { type: "CLEAR_ACTIVE" }
+  | { type: "SET_PENDING_MESSAGE"; message: { role: string; content: string } | null }
 
 export const initialConversationState: ConversationState = {
   activeConversationId: null,
+  pendingUserMessage: null,
 }
 
 export function conversationReducer(
@@ -22,7 +25,9 @@ export function conversationReducer(
     case "SET_ACTIVE":
       return { ...state, activeConversationId: action.conversationId }
     case "CLEAR_ACTIVE":
-      return { ...state, activeConversationId: null }
+      return { ...state, activeConversationId: null, pendingUserMessage: null }
+    case "SET_PENDING_MESSAGE":
+      return { ...state, pendingUserMessage: action.message }
     default:
       return state
   }
