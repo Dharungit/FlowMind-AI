@@ -3,6 +3,7 @@ import type { LogoutRequest, RefreshRequest } from "./types"
 
 class AuthApiClient {
   private baseUrl: string
+  private refreshPromise: Promise<boolean> | null = null
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl
@@ -21,26 +22,49 @@ class AuthApiClient {
       headers["Authorization"] = `Bearer ${session.accessToken}`
     }
 
-    let res = await fetch(url, { ...options, headers })
+    let res: Response | null = null
+    try {
+      res = await fetch(url, { ...options, headers })
+    } catch (err) {
+      console.log("[AUTH DEBUG] request fetch threw", {
+        path,
+        error: String(err),
+      })
+    }
 
-    if (res.status === 401 && session?.refreshToken) {
-      const refreshed = await this.tryRefresh(session.refreshToken)
+    if (res?.status === 401 || res === null) {
+      if (session?.refreshToken) {
+        console.log("[AUTH DEBUG] request got 401 or fetch failed", {
+          path,
+          status: res?.status,
+          hasRefreshToken: !!session?.refreshToken,
+        })
+        const refreshed = await this.tryRefresh(session.refreshToken)
 
-      if (refreshed) {
-        const newSession = await getSession()
-        if (newSession?.accessToken) {
-          headers["Authorization"] = `Bearer ${newSession.accessToken}`
+        console.log("[AUTH DEBUG] refresh attempt result", { refreshed })
+        if (refreshed) {
+          const newSession = await getSession()
+          if (newSession?.accessToken) {
+            headers["Authorization"] = `Bearer ${newSession.accessToken}`
+          }
+          try {
+            res = await fetch(url, { ...options, headers })
+          } catch {
+            console.log("[AUTH DEBUG] request retry fetch also threw")
+            throw new ApiError(401, "Request failed after refresh")
+          }
+        } else {
+          await signOut({ callbackUrl: "/login" })
+          throw new ApiError(401, "Session expired")
         }
-        res = await fetch(url, { ...options, headers })
       } else {
-        await signOut({ callbackUrl: "/login" })
-        throw new ApiError(401, "Session expired")
+        throw new ApiError(401, "No refresh token available")
       }
     }
 
-    if (!res.ok) {
-      const body = await res.text()
-      throw new ApiError(res.status, body || res.statusText)
+    if (!res || !res.ok) {
+      const body = res ? await res.text() : "No response"
+      throw new ApiError(res?.status ?? 0, body || res?.statusText || "Network error")
     }
 
     if (res.headers.get("content-length") === "0" || res.status === 204) {
@@ -51,30 +75,73 @@ class AuthApiClient {
   }
 
   private async tryRefresh(refreshToken: string): Promise<boolean> {
-    try {
-      const res = await fetch(`${this.baseUrl}/v1/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: refreshToken } satisfies RefreshRequest),
-      })
+    console.log("[AUTH DEBUG] tryRefresh starting", {
+      refreshTokenExists: !!refreshToken,
+      refreshTokenPrefix: refreshToken?.substring(0, 10) + "...",
+    })
 
-      if (!res.ok) return false
-
-      const data = await res.json()
-
-      await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token,
-        }),
-      })
-
-      return true
-    } catch {
-      return false
+    if (this.refreshPromise) {
+      console.log("[AUTH DEBUG] tryRefresh - waiting for in-flight refresh")
+      return this.refreshPromise
     }
+
+    this.refreshPromise = (async () => {
+      try {
+        const res = await fetch(`${this.baseUrl}/v1/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            refresh_token: refreshToken,
+          } satisfies RefreshRequest),
+        })
+
+        console.log("[AUTH DEBUG] POST /v1/auth/refresh response", {
+          ok: res.ok,
+          status: res.status,
+        })
+
+        if (!res.ok) return false
+
+        const data = await res.json()
+
+        const csrfRes = await fetch("/api/auth/csrf")
+        const { csrfToken } = await csrfRes.json()
+
+        console.log("[AUTH DEBUG] CSRF token fetched", {
+          csrfTokenExists: !!csrfToken,
+        })
+
+        const updateRes = await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            csrfToken,
+            data: {
+              accessToken: data.access_token,
+              refreshToken: data.refresh_token,
+              expiresAt: Date.now() + 2 * 60 * 1000,
+            },
+            json: true,
+          }),
+        })
+
+        console.log("[AUTH DEBUG] POST /api/auth/session update response", {
+          ok: updateRes.ok,
+          status: updateRes.status,
+        })
+
+        console.log("[AUTH DEBUG] tryRefresh result", { success: updateRes.ok })
+
+        return updateRes.ok
+      } catch {
+        console.log("[AUTH DEBUG] tryRefresh - error caught, returning false")
+        return false
+      } finally {
+        this.refreshPromise = null
+      }
+    })()
+
+    return this.refreshPromise
   }
 
   async stream(
@@ -100,26 +167,49 @@ class AuthApiClient {
       signal,
     }
 
-    let res = await fetch(url, options)
+    let res: Response | null = null
+    try {
+      res = await fetch(url, options)
+    } catch (err) {
+      console.log("[AUTH DEBUG] stream fetch threw", {
+        path,
+        error: String(err),
+      })
+    }
 
-    if (res.status === 401 && session?.refreshToken) {
-      const refreshed = await this.tryRefresh(session.refreshToken)
+    if (res?.status === 401 || res === null) {
+      if (session?.refreshToken) {
+        console.log("[AUTH DEBUG] stream got 401 or fetch failed", {
+          path,
+          status: res?.status,
+          hasRefreshToken: !!session?.refreshToken,
+        })
+        const refreshed = await this.tryRefresh(session.refreshToken)
 
-      if (refreshed) {
-        const newSession = await getSession()
-        if (newSession?.accessToken) {
-          headers["Authorization"] = `Bearer ${newSession.accessToken}`
+        console.log("[AUTH DEBUG] stream refresh attempt result", { refreshed })
+        if (refreshed) {
+          const newSession = await getSession()
+          if (newSession?.accessToken) {
+            headers["Authorization"] = `Bearer ${newSession.accessToken}`
+          }
+          try {
+            res = await fetch(url, { ...options, headers })
+          } catch {
+            console.log("[AUTH DEBUG] stream retry fetch also threw")
+            throw new ApiError(401, "Stream failed after refresh")
+          }
+        } else {
+          await signOut({ callbackUrl: "/login" })
+          throw new ApiError(401, "Session expired")
         }
-        res = await fetch(url, { ...options, headers })
       } else {
-        await signOut({ callbackUrl: "/login" })
-        throw new ApiError(401, "Session expired")
+        throw new ApiError(401, "No refresh token available")
       }
     }
 
-    if (!res.ok) {
-      const bodyText = await res.text()
-      throw new ApiError(res.status, bodyText || res.statusText)
+    if (!res || !res.ok) {
+      const bodyText = res ? await res.text() : "No response"
+      throw new ApiError(res?.status ?? 0, bodyText || res?.statusText || "Network error")
     }
 
     return res
