@@ -43,18 +43,18 @@ export function MessageThread({ messages, isLoading }: MessageThreadProps) {
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex flex-1 min-h-0 items-center justify-center">
         <Spinner />
       </div>
     )
   }
 
   return (
-    <div className="relative flex-1 overflow-hidden">
+    <div className="relative min-h-0 flex-1 flex flex-col overflow-hidden">
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="h-full overflow-y-auto px-4 py-6 space-y-4"
+        className="flex-1 min-h-0 overflow-y-auto px-4 py-6 space-y-4"
       >
         {messages.map((msg, i) =>
           msg.role === "user" ? (

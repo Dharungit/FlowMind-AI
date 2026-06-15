@@ -9,7 +9,7 @@ export default function ChatLayout({
 }) {
   return (
     <ChatProvider>
-      <div className="flex h-full flex-col">
+      <div className="flex flex-1 min-h-0 flex-col">
         <Header />
         <div className="flex min-h-0 flex-1">
           <Sidebar />

@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body className="h-full font-sans antialiased">
+    <html lang="en" className="h-full overflow-hidden">
+      <body className="flex flex-col h-full overflow-hidden font-sans antialiased">
         <AuthProviders>
           <AppProvider>
             <AuthProvider>

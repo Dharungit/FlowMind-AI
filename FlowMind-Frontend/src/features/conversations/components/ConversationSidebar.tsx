@@ -38,7 +38,7 @@ export function ConversationSidebar({ onNewChat, onSelectConversation }: Convers
   }
 
   return (
-    <>
+    <div className="flex h-full flex-col">
       <div className="flex flex-col px-3 pt-3 pb-2">
         <NewChatButton onClick={onNewChat} />
       </div>
@@ -57,6 +57,6 @@ export function ConversationSidebar({ onNewChat, onSelectConversation }: Convers
         onClose={() => setDeleteTargetId(null)}
         onConfirm={handleDeleteConfirm}
       />
-    </>
+    </div>
   )
 }

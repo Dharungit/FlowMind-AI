@@ -51,14 +51,14 @@ export function ChatPage() {
     pendingMessages.length === 0
   ) {
     return (
-      <div className="flex h-full items-start justify-center bg-white pt-32">
+      <div className="flex flex-1 min-h-0 items-start justify-center bg-white pt-32">
         <Spinner className="size-5" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex flex-1 min-h-0 flex-col bg-white overflow-hidden">
       {hasMessages ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <MessageThread messages={allMessages} />
@@ -88,7 +88,7 @@ export function ChatPage() {
         </div>
       )}
 
-      <div className="shrink-0 px-4 pb-4 pt-2">
+      <div className="shrink-0 border-t border-neutral-200 px-4 pb-4 pt-2">
         <div className="mx-auto max-w-3xl">
           <ChatInput onSend={handleSend} disabled={isSending} />
         </div>
