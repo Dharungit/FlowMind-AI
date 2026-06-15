@@ -29,9 +29,9 @@ export function MessageThread({ messages, isLoading }: MessageThreadProps) {
 
   useEffect(() => {
     if (!userScrolledUp) {
-      scrollToBottom()
+      scrollToBottom();
     }
-  }, [messages, userScrolledUp])
+  }, [messages, userScrolledUp]);
 
   const handleScroll = () => {
     const container = containerRef.current;
@@ -46,7 +46,7 @@ export function MessageThread({ messages, isLoading }: MessageThreadProps) {
       <div className="flex flex-1 min-h-0 items-center justify-center">
         <Spinner />
       </div>
-    )
+    );
   }
 
   return (
@@ -71,7 +71,7 @@ export function MessageThread({ messages, isLoading }: MessageThreadProps) {
           <Button
             variant="secondary"
             size="icon"
-            className="rounded-full shadow-md h-9 w-9"
+            className="rounded-full shadow-md h-9 w-9 bg-white hover:bg-neutral-100"
             onClick={scrollToBottom}
           >
             <ChevronDown className="h-4 w-4" />

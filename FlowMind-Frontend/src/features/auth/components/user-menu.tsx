@@ -1,32 +1,36 @@
-"use client"
+"use client";
 
-import { useSession } from "next-auth/react"
-import { LogOut, Mail } from "lucide-react"
-import { useLogout } from "../hooks/use-auth"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/shared/Avatar"
+import { useSession } from "next-auth/react";
+import { LogOut, Mail } from "lucide-react";
+import { useLogout } from "../hooks/use-auth";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/shared/Avatar";
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
   PopoverTitle,
   PopoverDescription,
-} from "@/components/ui/popover"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 
 function getInitial(name: string, email: string): string {
-  if (name?.trim()) return name.trim()[0].toUpperCase()
-  if (email?.trim()) return email.trim()[0].toUpperCase()
-  return "?"
+  if (name?.trim()) return name.trim()[0].toUpperCase();
+  if (email?.trim()) return email.trim()[0].toUpperCase();
+  return "?";
 }
 
 export function UserMenu() {
-  const { data: session } = useSession()
-  const logout = useLogout()
-  const user = session?.user
+  const { data: session } = useSession();
+  const logout = useLogout();
+  const user = session?.user;
 
-  if (!user) return null
+  if (!user) return null;
 
-  const initial = getInitial(user.display_name, user.email)
+  const initial = getInitial(user.display_name, user.email);
 
   return (
     <Popover>
@@ -38,7 +42,12 @@ export function UserMenu() {
           <AvatarFallback>{initial}</AvatarFallback>
         </Avatar>
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="end" sideOffset={8}>
+      <PopoverContent
+        side="bottom"
+        align="end"
+        sideOffset={8}
+        className="bg-white"
+      >
         <PopoverTitle>{user.display_name}</PopoverTitle>
         <PopoverDescription className="flex items-center gap-1.5">
           <Mail className="size-3.5 shrink-0" />
@@ -57,5 +66,5 @@ export function UserMenu() {
         </Button>
       </PopoverContent>
     </Popover>
-  )
+  );
 }

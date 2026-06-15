@@ -23,7 +23,7 @@ export function Header() {
         >
           <Menu className="size-5" />
         </button>
-        <span className="text-sm font-semibold text-neutral-900">FlowMind</span>
+        <span className="text-lg font-semibold text-neutral-900">FlowMind</span>
       </div>
       <UserMenu />
     </header>
