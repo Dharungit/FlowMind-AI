@@ -37,3 +37,34 @@ export interface ConversationDetailResponse extends ConversationResponse {
 }
 
 export type ConversationStatus = "idle" | "loading" | "error" | "empty"
+
+export interface StreamRequest {
+  conversation_id?: string | null
+  messages: MessageItem[]
+}
+
+export interface StreamMetaEvent {
+  type: "meta"
+  conversation_id: string
+}
+
+export interface StreamChunkEvent {
+  type: "chunk"
+  data: Record<string, unknown>
+}
+
+export interface StreamDoneEvent {
+  type: "done"
+  done: true
+  conversation_id: string
+  message: MessageResponse
+}
+
+export interface StreamErrorEvent {
+  type: "error"
+  error: string
+  conversation_id?: string
+  message?: MessageResponse
+}
+
+export type SSEEvent = StreamMetaEvent | StreamChunkEvent | StreamDoneEvent | StreamErrorEvent

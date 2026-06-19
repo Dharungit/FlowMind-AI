@@ -15,12 +15,15 @@ interface Message {
 interface MessageThreadProps {
   messages: Message[];
   isLoading?: boolean;
+  isStreaming?: boolean;
+  scrollToKey?: number;
 }
 
-export function MessageThread({ messages, isLoading }: MessageThreadProps) {
+export function MessageThread({ messages, isLoading, isStreaming, scrollToKey }: MessageThreadProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [userScrolledUp, setUserScrolledUp] = useState(false);
+  const initialLoadDone = useRef(false);
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -28,10 +31,17 @@ export function MessageThread({ messages, isLoading }: MessageThreadProps) {
   };
 
   useEffect(() => {
-    if (!userScrolledUp) {
+    if (!initialLoadDone.current && messages.length > 0) {
+      initialLoadDone.current = true;
       scrollToBottom();
     }
-  }, [messages, userScrolledUp]);
+  }, [messages]);
+
+  useEffect(() => {
+    if (scrollToKey && scrollToKey > 0) {
+      scrollToBottom();
+    }
+  }, [scrollToKey]);
 
   const handleScroll = () => {
     const container = containerRef.current;
@@ -54,13 +64,17 @@ export function MessageThread({ messages, isLoading }: MessageThreadProps) {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto px-4 py-6 space-y-4"
+        className="flex-1 min-h-0 overflow-y-auto px-4 pt-6 pb-20 space-y-4"
       >
         {messages.map((msg, i) =>
           msg.role === "user" ? (
             <UserMessage key={i} content={msg.content ?? ""} />
           ) : (
-            <AssistantMessage key={i} content={msg.content ?? ""} />
+            <AssistantMessage
+              key={i}
+              content={msg.content ?? ""}
+              isStreaming={isStreaming && i === messages.length - 1}
+            />
           ),
         )}
         <div ref={bottomRef} />

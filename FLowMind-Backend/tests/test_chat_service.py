@@ -68,7 +68,9 @@ async def test_chat_streaming(settings):
     req = ChatRequest(messages=[ChatMessage(role="user", content="Hi")], stream=True)
     chunks = [c async for c in service.stream_chat(req)]
 
-    assert len(chunks) > 0
+    assert len(chunks) == 1
+    assert chunks[0]["id"] == "chatcmpl-mock-456"
+    assert chunks[0]["choices"][0]["delta"]["content"] == "Hello"
     service.client.chat.completions.create.assert_called_once()
     call_kwargs = service.client.chat.completions.create.call_args.kwargs
     assert call_kwargs["stream"] is True

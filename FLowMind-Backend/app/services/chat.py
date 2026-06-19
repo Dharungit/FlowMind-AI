@@ -21,13 +21,12 @@ class ChatService:
         data = raw.model_dump()
         return ChatResponse(**data)
 
-    async def stream_chat(self, request: ChatRequest) -> AsyncGenerator[bytes, None]:
+    async def stream_chat(self, request: ChatRequest) -> AsyncGenerator[dict, None]:
         kwargs = self._build_kwargs(request)
         kwargs["stream"] = True
         stream = await self.client.chat.completions.create(**kwargs)
         async for chunk in stream:
-            yield b"data: " + chunk.model_dump_json().encode() + b"\n\n"
-        yield b"data: [DONE]\n\n"
+            yield chunk.model_dump()
 
     def _build_kwargs(self, request: ChatRequest) -> dict:
         kwargs = request.model_dump(exclude_none=True)

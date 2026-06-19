@@ -1,9 +1,13 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import StreamingResponse
 
 from app.database import get_db
+from app.models import Conversation
+from app.schemas.chat import StreamRequest
 from app.schemas.conversations import (
     ConversationCreate,
     ConversationDetailResponse,
@@ -138,6 +142,37 @@ async def add_message(
     except ValueError:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Conversation not found")
+
+
+@router.post("/stream")
+async def stream_chat_completion(
+    body: StreamRequest,
+    request: Request,
+    service: MessageService = Depends(get_message_service),
+    db: AsyncSession = Depends(get_db),
+):
+    user_id = request.state.user_id
+    conversation_id = str(body.conversation_id) if body.conversation_id else None
+
+    if conversation_id:
+        result = await db.execute(
+            select(Conversation).where(
+                Conversation.id == conversation_id,
+                Conversation.user_id == user_id,
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Conversation not found")
+
+    return StreamingResponse(
+        service.stream_add_message(
+            conversation_id=conversation_id,
+            user_id=user_id,
+            messages=body.messages,
+        ),
+        media_type="text/event-stream",
+    )
 
 
 @router.delete("/messages/{message_id}", status_code=204)

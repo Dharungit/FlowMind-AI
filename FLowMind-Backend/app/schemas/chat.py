@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel
 
 
@@ -27,3 +29,8 @@ class ChatResponse(BaseModel):
     object: str = "chat.completion"
     choices: list[dict]
     usage: dict | None = None
+
+
+class StreamRequest(BaseModel):
+    conversation_id: UUID | None = None
+    messages: list[ChatMessage]
