@@ -91,6 +91,8 @@ class MessageService:
         conversation_id: str | None,
         user_id: str,
         messages: list[ChatMessage],
+        memory_context: str | None = None,
+        stream_meta: dict | None = None,
     ) -> AsyncGenerator[bytes, None]:
         if conversation_id:
             result = await self.db.execute(
@@ -107,6 +109,8 @@ class MessageService:
             self.db.add(conversation)
             await self.db.flush()
             conversation_id = str(conversation.id)
+            if stream_meta is not None:
+                stream_meta["conversation_id"] = conversation_id
 
         history_result = await self.db.execute(
             select(Message)
@@ -116,6 +120,8 @@ class MessageService:
         history = list(history_result.scalars().all())
 
         all_messages = []
+        if memory_context:
+            all_messages.append(ChatMessage(role="system", content=memory_context))
         for msg in history:
             all_messages.append(ChatMessage(role=msg.role, content=msg.content))
         for msg in messages:

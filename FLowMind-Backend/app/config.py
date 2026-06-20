@@ -13,4 +13,8 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     jwt_secret: str = "change-me-in-production"
 
+    openai_api_key: str = ""
+    memory_similarity_threshold: float = 0.85
+    memory_max_results: int = 5
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}

@@ -9,10 +9,12 @@ from starlette.responses import JSONResponse
 
 from app.api.auth import router as auth_router
 from app.api.chat import router as chat_router
+from app.api.memory import router as memory_router
 from app.config import Settings
 from app.database import close_db, init_db
 from app.middleware import JwtAuthMiddleware, LoggingMiddleware, RateLimitMiddleware
 from app.services.chat import ChatService
+from app.services.embedding import EmbeddingService
 from app.services.token import TokenService
 
 logger = logging.getLogger("flowmind")
@@ -45,6 +47,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.chat_service = ChatService(settings)
         app.state.settings = settings
         app.state.token_service = token_service
+        app.state.embedding_service = EmbeddingService(settings)
         yield
         await close_db()
 
@@ -65,6 +68,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(chat_router)
+    app.include_router(memory_router)
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:

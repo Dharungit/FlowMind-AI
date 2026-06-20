@@ -12,6 +12,7 @@ from app.main import create_app
 from app.models import Conversation, Message
 from app.schemas.chat import ChatRequest
 from app.services.chat import ChatService
+from app.services.embedding import EmbeddingService
 from app.services.message import MessageService
 from app.services.token import TokenService
 
@@ -69,6 +70,7 @@ def _app(settings):
     app = create_app(settings)
     app.state.settings = settings
     app.state.token_service = TokenService(settings)
+    app.state.embedding_service = EmbeddingService(settings)
     return app
 
 

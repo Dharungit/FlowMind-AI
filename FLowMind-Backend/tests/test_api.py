@@ -9,6 +9,7 @@ from app.database import get_db
 from app.main import create_app
 from app.services.chat import ChatService
 from app.services.conversation import ConversationService
+from app.services.embedding import EmbeddingService
 from app.services.message import MessageService
 from app.services.token import TokenService
 
@@ -68,6 +69,7 @@ def _app(settings):
     app.state.settings = settings
     app.state.token_service = TokenService(settings)
     app.state.chat_service = _mock_chat_service(settings)
+    app.state.embedding_service = EmbeddingService(settings)
     return app
 
 
