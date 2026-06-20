@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import datetime, timezone
 
-from sqlalchemy import select, text, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
@@ -21,8 +21,15 @@ class MemoryService:
         self.embedding_service = embedding_service
         self.similarity_threshold = settings.memory_similarity_threshold if settings else 0.85
         self.max_results = settings.memory_max_results if settings else 5
+        self.max_per_user = settings.memory_max_per_user if settings else 100
 
     # ── CRUD ──────────────────────────────────────────────────────────
+
+    async def get_memory_count(self, user_id: str) -> int:
+        result = await self.db.execute(
+            select(func.count()).select_from(Memory).where(Memory.user_id == user_id)
+        )
+        return result.scalar() or 0
 
     async def save_memory(
         self,
@@ -30,7 +37,12 @@ class MemoryService:
         memory: str,
         memory_type: str = "fact",
         importance: float = 0.5,
-    ) -> Memory:
+    ) -> Memory | None:
+        count = await self.get_memory_count(user_id)
+        if count >= self.max_per_user:
+            logger.info("Memory save skipped: user %s at limit %d/%d", user_id, count, self.max_per_user)
+            return None
+
         embedding = await self.embedding_service.embed(memory)
 
         mem = Memory(
@@ -246,9 +258,17 @@ class MemoryService:
         assistant_message: str,
         chat_service: ChatService,
     ) -> list[Memory]:
+        count = await self.get_memory_count(user_id)
+        remaining = self.max_per_user - count
+        if remaining <= 0:
+            logger.info("Extraction skipped: user %s at limit %d/%d", user_id, count, self.max_per_user)
+            return []
+
         items = await self._extract_memories_via_llm(user_message, assistant_message, chat_service)
         created = []
         for item in items:
+            if len(created) >= remaining:
+                break
             is_dup = await self._check_duplicate(user_id, item.memory)
             if is_dup:
                 continue
@@ -258,5 +278,6 @@ class MemoryService:
                 memory_type=item.memory_type,
                 importance=item.importance,
             )
-            created.append(mem)
+            if mem is not None:
+                created.append(mem)
         return created

@@ -15,4 +15,5 @@ def settings():
         openai_api_key="sk-test-123",
         memory_similarity_threshold=0.85,
         memory_max_results=5,
+        memory_max_per_user=100,
     )

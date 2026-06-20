@@ -31,6 +31,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       MEMORY_SIMILARITY_THRESHOLD: ${MEMORY_SIMILARITY_THRESHOLD:-0.85}
       MEMORY_MAX_RESULTS: ${MEMORY_MAX_RESULTS:-5}
+      MEMORY_MAX_PER_USER: ${MEMORY_MAX_PER_USER:-100}
     depends_on:
       db:
         condition: service_healthy

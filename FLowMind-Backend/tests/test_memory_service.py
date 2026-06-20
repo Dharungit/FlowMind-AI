@@ -19,6 +19,7 @@ def settings():
         openai_api_key="sk-test-123",
         memory_similarity_threshold=0.85,
         memory_max_results=5,
+        memory_max_per_user=100,
     )
 
 
@@ -45,30 +46,21 @@ def memory_service(mock_db, mock_embedding_service, settings):
 
 @pytest.mark.asyncio
 async def test_save_memory(memory_service, mock_db, mock_embedding_service):
+    count_result = MagicMock()
+    count_result.scalar.return_value = 5
+    mock_db.execute = AsyncMock(return_value=count_result)
     mock_db.flush = AsyncMock()
     mock_db.commit = AsyncMock()
-    mock_db.refresh = AsyncMock()
-    mock_db.execute = AsyncMock()
 
     now = datetime.now(timezone.utc)
     mem_id = uuid4()
-    mem = Memory(
-        id=mem_id,
-        user_id="user-123",
-        memory="User is building FlowMind AI",
-        memory_type="project",
-        importance=0.8,
-        created_at=now,
-        updated_at=now,
-    )
-    mock_db.refresh = AsyncMock()
 
     async def _refresh(obj):
         obj.id = mem_id
         obj.created_at = now
         obj.updated_at = now
 
-    mock_db.refresh.side_effect = _refresh
+    mock_db.refresh = AsyncMock(side_effect=_refresh)
 
     result = await memory_service.save_memory(
         user_id="user-123",
@@ -77,11 +69,50 @@ async def test_save_memory(memory_service, mock_db, mock_embedding_service):
         importance=0.8,
     )
 
+    assert result is not None
     assert result.memory == "User is building FlowMind AI"
     assert result.memory_type == "project"
     mock_db.add.assert_called_once()
     mock_db.commit.assert_awaited_once()
     mock_embedding_service.embed.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_save_memory_at_limit_returns_none(memory_service, mock_db):
+    count_result = MagicMock()
+    count_result.scalar.return_value = 100
+    mock_db.execute = AsyncMock(return_value=count_result)
+
+    result = await memory_service.save_memory(
+        user_id="user-123",
+        memory="Exceeded memory",
+        memory_type="fact",
+        importance=0.5,
+    )
+
+    assert result is None
+    mock_db.add.assert_not_called()
+    mock_db.commit.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_get_memory_count(memory_service, mock_db):
+    count_result = MagicMock()
+    count_result.scalar.return_value = 42
+    mock_db.execute = AsyncMock(return_value=count_result)
+
+    count = await memory_service.get_memory_count("user-123")
+    assert count == 42
+
+
+@pytest.mark.asyncio
+async def test_get_memory_count_empty(memory_service, mock_db):
+    count_result = MagicMock()
+    count_result.scalar.return_value = 0
+    mock_db.execute = AsyncMock(return_value=count_result)
+
+    count = await memory_service.get_memory_count("user-123")
+    assert count == 0
 
 
 @pytest.mark.asyncio
@@ -339,9 +370,14 @@ async def test_extract_from_exchange(memory_service, mock_db, mock_embedding_ser
     ]
     mock_chat_service.chat = AsyncMock(return_value=mock_response)
 
-    mock_dup_result = MagicMock()
-    mock_dup_result.scalar.return_value = 0
-    mock_db.execute = AsyncMock(return_value=mock_dup_result)
+    count_result = MagicMock()
+    count_result.scalar.return_value = 50
+    dup_result = MagicMock()
+    dup_result.scalar.return_value = 0
+    count_result2 = MagicMock()
+    count_result2.scalar.return_value = 50
+    update_result = MagicMock()
+    mock_db.execute = AsyncMock(side_effect=[count_result, dup_result, count_result2, update_result])
     mock_db.flush = AsyncMock()
     mock_db.commit = AsyncMock()
     mock_embedding_service.embed = AsyncMock(return_value=[0.1] * 1536)
@@ -357,7 +393,25 @@ async def test_extract_from_exchange(memory_service, mock_db, mock_embedding_ser
 
 
 @pytest.mark.asyncio
+async def test_extract_from_exchange_at_limit_skips(memory_service, mock_db):
+    count_result = MagicMock()
+    count_result.scalar.return_value = 100
+    mock_db.execute = AsyncMock(return_value=count_result)
+
+    mock_chat_service = MagicMock()
+    result = await memory_service.extract_from_exchange(
+        "user-123", "Hello", "Hi!", mock_chat_service,
+    )
+    assert result == []
+    mock_chat_service.chat.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_extract_from_exchange_no_facts(memory_service, mock_db):
+    count_result = MagicMock()
+    count_result.scalar.return_value = 50
+    mock_db.execute = AsyncMock(return_value=count_result)
+
     mock_chat_service = MagicMock()
     mock_response = MagicMock()
     mock_response.choices = [{"message": {"content": '{"memories": []}'}}]

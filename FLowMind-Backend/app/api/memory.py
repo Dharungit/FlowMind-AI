@@ -41,19 +41,43 @@ async def list_memories(
         limit=limit,
         offset=offset,
     )
-    return [
-        MemoryResponse(
-            id=m.id,
-            memory=m.memory,
-            memory_type=m.memory_type,
-            importance=m.importance,
-            access_count=m.access_count,
-            last_accessed_at=m.last_accessed_at,
-            created_at=m.created_at,
-            updated_at=m.updated_at,
-        )
-        for m in memories
-    ]
+    count = await service.get_memory_count(user_id)
+    max_mem = service.max_per_user
+    return {
+        "memories": [
+            MemoryResponse(
+                id=m.id,
+                memory=m.memory,
+                memory_type=m.memory_type,
+                importance=m.importance,
+                access_count=m.access_count,
+                last_accessed_at=m.last_accessed_at,
+                created_at=m.created_at,
+                updated_at=m.updated_at,
+            )
+            for m in memories
+        ],
+        "usage": {
+            "count": count,
+            "max": max_mem,
+            "percentage": round(count / max_mem, 4) if max_mem > 0 else 0.0,
+        },
+    }
+
+
+@router.get("/users/me/memory-usage")
+async def memory_usage(
+    request: Request,
+    service: MemoryService = Depends(get_memory_service),
+):
+    user_id = request.state.user_id
+    count = await service.get_memory_count(user_id)
+    max_mem = service.max_per_user
+    return {
+        "count": count,
+        "max": max_mem,
+        "percentage": round(count / max_mem, 4) if max_mem > 0 else 0.0,
+    }
 
 
 @router.delete("/memories/{memory_id}")
