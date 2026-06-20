@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import "./globals.css"
+import { Toaster } from "sonner"
 import { AuthProviders } from "@/features/auth/components/providers"
 import { AppProvider } from "@/store/app/AppContext"
 import { AuthProvider } from "@/store/auth/AuthContext"
@@ -31,6 +32,7 @@ export default function RootLayout({
             </AuthProvider>
           </AppProvider>
         </AuthProviders>
+        <Toaster richColors />
       </body>
     </html>
   )
