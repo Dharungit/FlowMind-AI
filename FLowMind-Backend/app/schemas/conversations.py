@@ -34,6 +34,7 @@ class MessageResponse(BaseModel):
 class ConversationResponse(BaseModel):
     id: UUID
     title: str
+    title_generated: bool = False
     created_at: datetime
     updated_at: datetime
 

@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
@@ -145,6 +146,99 @@ async def delete_conversation(
     if not deleted:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Conversation not found")
+
+
+@router.post("/conversations/{conversation_id}/generate-title")
+async def generate_conversation_title(
+    conversation_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    conv_service: ConversationService = Depends(get_conversation_service),
+):
+    from app.schemas.chat import ChatMessage, ChatRequest
+
+    user_id = request.state.user_id
+    conv = await conv_service.get_by_id(str(conversation_id), user_id)
+    if conv is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    first_user_msg = None
+    first_assistant_msg = None
+    for msg in conv.messages:
+        if msg.role == "user" and first_user_msg is None:
+            first_user_msg = msg.content
+        elif msg.role == "assistant" and first_assistant_msg is None:
+            first_assistant_msg = msg.content
+        if first_user_msg and first_assistant_msg:
+            break
+
+    if not first_user_msg:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=400,
+            detail="No user messages found in this conversation",
+        )
+
+    chat_service: ChatService = request.app.state.chat_service
+    user_content = f"User:\n{first_user_msg}"
+    if first_assistant_msg:
+        user_content += f"\n\nAssistant:\n{first_assistant_msg}"
+
+    llm_request = ChatRequest(
+        messages=[
+            ChatMessage(
+                role="system",
+                content=(
+                    "Generate a concise chat title.\n\n"
+                    "Requirements:\n"
+                    "- Identify the main topic, not the answer.\n"
+                    "- Act like a title shown in a chat sidebar.\n"
+                    "- Use noun phrases whenever possible.\n"
+                    "- Maximum 5 words.\n"
+                    "- No punctuation.\n"
+                    "- No quotes.\n"
+                    "- Title case.\n"
+                    "- Return only the title.\n\n"
+                    "Examples:\n\n"
+                    "User: How expensive are tokens in large AI models?\n"
+                    "Title: AI Model Token Pricing\n\n"
+                    "User: Compare RAG and fine tuning\n"
+                    "Title: RAG vs Fine Tuning\n\n"
+                    "User: How do I implement memory in an AI chatbot?\n"
+                    "Title: AI Chatbot Memory\n\n"
+                    "User: Best way to deploy FastAPI on AWS EC2\n"
+                    "Title: FastAPI AWS Deployment"
+                ),
+            ),
+            ChatMessage(role="user", content=user_content),
+        ],
+    )
+    response = await chat_service.chat(llm_request)
+    title = response.choices[0]["message"]["content"].strip().strip('"').strip("'")
+
+    words = title.split()
+    if len(words) > 5:
+        title = " ".join(words[:5])
+
+    if not title:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="Title generation returned empty result")
+
+    conv.title = title
+    conv.title_generated = True
+    conv.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(conv)
+
+    logger.info("Title generated for conversation %s: %s", conversation_id, title)
+    return ConversationResponse(
+        id=conv.id,
+        title=conv.title,
+        title_generated=conv.title_generated,
+        created_at=conv.created_at,
+        updated_at=conv.updated_at,
+    )
 
 
 @router.post("/conversations/{conversation_id}/messages")

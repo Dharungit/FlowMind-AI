@@ -1,6 +1,6 @@
 import json
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -321,3 +321,6 @@ def test_stream_openai_error_mid_stream(settings):
     assert last["message"]["role"] == "assistant"
     assert last["message"]["content"] == "Hello"
     assert db.commit.called
+
+
+

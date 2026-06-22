@@ -182,3 +182,110 @@ def test_google_auth_invalid_token(mock_verify, settings):
     assert resp.status_code == 401
     data = resp.json()
     assert data["detail"]["type"] == "authentication_error"
+
+
+def _mock_db():
+    db = MagicMock()
+    db.execute = AsyncMock()
+    db.add = MagicMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+    return db
+
+
+def test_generate_title_success(settings):
+    app = _app(settings)
+    now = datetime.now(timezone.utc)
+    conv_id = uuid4()
+
+    conv = MagicMock()
+    conv.id = conv_id
+    conv.title = "New Conversation"
+    conv.title_generated = False
+    conv.created_at = now
+    conv.updated_at = now
+
+    user_msg = MagicMock()
+    user_msg.role = "user"
+    user_msg.content = "What is the meaning of life?"
+    conv.messages = [user_msg]
+
+    conv_service = MagicMock(spec=ConversationService)
+    conv_service.get_by_id = AsyncMock(return_value=conv)
+
+    chat_service = ChatService(settings)
+    mock_resp = MagicMock()
+    mock_resp.choices = [{"message": {"content": "The Meaning of Life"}}]
+    chat_service.chat = AsyncMock(return_value=mock_resp)
+
+    app.state.chat_service = chat_service
+    app.dependency_overrides[get_conversation_service] = lambda: conv_service
+    app.dependency_overrides[get_db] = lambda: _mock_db()
+
+    client = TestClient(app)
+    token_service = TokenService(settings)
+
+    resp = client.post(
+        f"/v1/conversations/{conv_id}/generate-title",
+        headers=_auth_headers(token_service),
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["title"] == "The Meaning of Life"
+    assert data["title_generated"] is True
+    assert data["id"] == str(conv_id)
+
+
+def test_generate_title_no_messages(settings):
+    app = _app(settings)
+    conv_id = uuid4()
+    now = datetime.now(timezone.utc)
+
+    conv = MagicMock()
+    conv.id = conv_id
+    conv.title = "New Conversation"
+    conv.title_generated = False
+    conv.created_at = now
+    conv.updated_at = now
+    conv.messages = []
+
+    conv_service = MagicMock(spec=ConversationService)
+    conv_service.get_by_id = AsyncMock(return_value=conv)
+    app.dependency_overrides[get_conversation_service] = lambda: conv_service
+    app.dependency_overrides[get_db] = lambda: _mock_db()
+
+    client = TestClient(app)
+    token_service = TokenService(settings)
+
+    resp = client.post(
+        f"/v1/conversations/{conv_id}/generate-title",
+        headers=_auth_headers(token_service),
+    )
+    assert resp.status_code == 400
+
+
+def test_generate_title_not_found(settings):
+    app = _app(settings)
+    conv_id = uuid4()
+
+    conv_service = MagicMock(spec=ConversationService)
+    conv_service.get_by_id = AsyncMock(return_value=None)
+    app.dependency_overrides[get_conversation_service] = lambda: conv_service
+    app.dependency_overrides[get_db] = lambda: _mock_db()
+
+    client = TestClient(app)
+    token_service = TokenService(settings)
+
+    resp = client.post(
+        f"/v1/conversations/{conv_id}/generate-title",
+        headers=_auth_headers(token_service),
+    )
+    assert resp.status_code == 404
+
+
+def test_generate_title_requires_auth(settings):
+    app = _app(settings)
+    client = TestClient(app)
+
+    resp = client.post(f"/v1/conversations/{uuid4()}/generate-title")
+    assert resp.status_code == 401
