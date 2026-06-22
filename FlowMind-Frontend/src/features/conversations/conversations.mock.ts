@@ -9,6 +9,7 @@ const conversations: ConversationDetailResponse[] = [
   {
     id: "c1a2b3c4-d5e6-7890-abcd-ef1234567890",
     title: "React Server Components explained",
+    title_generated: true,
     created_at: hours(48),
     updated_at: hours(2),
     messages: [
@@ -19,6 +20,7 @@ const conversations: ConversationDetailResponse[] = [
   {
     id: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
     title: "TypeScript utility types",
+    title_generated: true,
     created_at: hours(24),
     updated_at: hours(5),
     messages: [
@@ -29,6 +31,7 @@ const conversations: ConversationDetailResponse[] = [
   {
     id: "d3e4f5a6-b7c8-9012-cdef-123456789012",
     title: "Docker compose networking",
+    title_generated: true,
     created_at: hours(12),
     updated_at: hours(8),
     messages: [
@@ -39,6 +42,7 @@ const conversations: ConversationDetailResponse[] = [
   {
     id: "e4f5a6b7-c8d9-0123-defa-234567890123",
     title: "Next.js App Router migration",
+    title_generated: true,
     created_at: hours(72),
     updated_at: hours(20),
     messages: [
@@ -49,6 +53,7 @@ const conversations: ConversationDetailResponse[] = [
   {
     id: "f5a6b7c8-d9e0-1234-efab-345678901234",
     title: "Tailwind CSS v4 breaking changes",
+    title_generated: true,
     created_at: hours(6),
     updated_at: hours(1),
     messages: [
@@ -59,6 +64,7 @@ const conversations: ConversationDetailResponse[] = [
   {
     id: "a6b7c8d9-e0f1-2345-fabc-456789012345",
     title: "Python async best practices",
+    title_generated: true,
     created_at: hours(96),
     updated_at: hours(30),
     messages: [
@@ -69,6 +75,7 @@ const conversations: ConversationDetailResponse[] = [
   {
     id: "b7c8d9e0-f1a2-3456-abcd-567890123456",
     title: "Git rebase vs merge strategy",
+    title_generated: true,
     created_at: hours(4),
     updated_at: hours(3),
     messages: [
@@ -103,6 +110,7 @@ export async function createConversation(data: ConversationCreate): Promise<Conv
   const conversation: ConversationDetailResponse = {
     id,
     title: data.title,
+    title_generated: true,
     created_at: now,
     updated_at: now,
     messages: [],

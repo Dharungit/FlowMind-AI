@@ -68,6 +68,7 @@ export function ConversationItem({
               "truncate text-sm leading-5",
               isActive ? "font-medium text-[#171717]" : "text-[#171717]"
             )}
+            title={conversation.title}
           >
             {conversation.title}
           </span>

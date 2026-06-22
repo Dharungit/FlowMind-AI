@@ -5,7 +5,8 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useConversationContext } from "@/store/conversation/ConversationContext"
 import { conversationClient, parseSSEResponse } from "../api/conversation-client"
-import type { StreamRequest } from "../types"
+import { useGenerateTitle } from "./useConversations"
+import type { ConversationDetailResponse, StreamRequest } from "../types"
 
 const CONVERSATIONS_KEY = ["conversations"] as const
 
@@ -20,10 +21,17 @@ export function useStreamMessage() {
   const { dispatch } = useConversationContext()
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const isNewConversationRef = useRef(false)
+  const accumulatedContentRef = useRef("")
+  const userMessageRef = useRef("")
+  const { mutate: generateTitle } = useGenerateTitle()
 
   const startStream = useCallback(
     async ({ content, activeConversationId }: StreamMessageInput) => {
       setError(null)
+      isNewConversationRef.current = !activeConversationId
+      userMessageRef.current = content
+      accumulatedContentRef.current = ""
 
       if (abortRef.current) {
         abortRef.current.abort()
@@ -57,16 +65,43 @@ export function useStreamMessage() {
             case "chunk": {
               const delta = (event.data as { choices?: { delta?: { content?: string } }[] })?.choices?.[0]?.delta?.content
               if (delta) {
+                accumulatedContentRef.current += delta
                 dispatch({ type: "STREAM_CHUNK", content: delta })
               }
               break
             }
             case "done":
+              if (event.conversation_id && (isNewConversationRef.current || accumulatedContentRef.current)) {
+                const now = new Date().toISOString()
+                const seed: ConversationDetailResponse = {
+                  id: event.conversation_id,
+                  title: "",
+                  title_generated: false,
+                  created_at: now,
+                  updated_at: now,
+                  messages: [
+                    {
+                      id: "seed-user",
+                      role: "user",
+                      content: userMessageRef.current,
+                      metadata: null,
+                      created_at: now,
+                    },
+                    {
+                      id: "seed-ai",
+                      role: "assistant",
+                      content: accumulatedContentRef.current,
+                      metadata: null,
+                      created_at: now,
+                    },
+                  ],
+                }
+                queryClient.setQueryData([...CONVERSATIONS_KEY, event.conversation_id], seed)
+              }
               dispatch({ type: "STREAM_DONE" })
               abortRef.current = null
-              queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY })
-              if (event.conversation_id) {
-                queryClient.invalidateQueries({ queryKey: [...CONVERSATIONS_KEY, event.conversation_id] })
+              if (event.conversation_id && isNewConversationRef.current) {
+                generateTitle(event.conversation_id)
               }
               break
             case "error":
@@ -96,7 +131,7 @@ export function useStreamMessage() {
         }
       }
     },
-    [dispatch, router, queryClient],
+    [dispatch, router, queryClient, generateTitle],
   )
 
   const stopStream = useCallback(() => {

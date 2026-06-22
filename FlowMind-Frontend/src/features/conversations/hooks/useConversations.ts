@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { useConversationContext } from "@/store/conversation/ConversationContext"
 import { conversationClient } from "../api/conversation-client"
 import type { ConversationUpdate } from "../types"
@@ -20,6 +21,24 @@ export function useConversation(id: string | null) {
     queryKey: [...CONVERSATIONS_KEY, id],
     queryFn: () => (id ? conversationClient.get(id) : null),
     enabled: !!id,
+  })
+}
+
+export function useGenerateTitle() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => conversationClient.generateTitle(id),
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY })
+      queryClient.invalidateQueries({ queryKey: [...CONVERSATIONS_KEY, id] })
+    },
+    onError: () => {
+      toast.error("Failed to generate conversation title")
+      queryClient.invalidateQueries({ queryKey: CONVERSATIONS_KEY })
+    },
   })
 }
 

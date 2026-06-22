@@ -28,6 +28,7 @@ export interface MessageResponse {
 export interface ConversationResponse {
   id: string
   title: string
+  title_generated: boolean
   created_at: string
   updated_at: string
 }

@@ -21,6 +21,10 @@ class ConversationApiClient {
     return apiClient.get<ConversationDetailResponse>(`/v1/conversations/${id}`)
   }
 
+  generateTitle(id: string): Promise<ConversationResponse> {
+    return apiClient.post<ConversationResponse>(`/v1/conversations/${id}/generate-title`)
+  }
+
   update(id: string, title: string): Promise<ConversationResponse> {
     const body: ConversationUpdate = { title }
     return apiClient.put<ConversationResponse>(`/v1/conversations/${id}`, body)
