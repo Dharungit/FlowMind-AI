@@ -75,34 +75,28 @@ export function ConversationItem({
         )}
       </div>
 
-      {!isEditing && (
+      {!isEditing && isHovered && (
         <div className="flex shrink-0 items-center gap-0.5">
-          {isHovered ? (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsEditing(true)
-                }}
-                className="flex size-6 items-center justify-center rounded text-[#737373] hover:text-[#171717] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
-                aria-label="Rename"
-              >
-                <Pencil className="size-3.5" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete()
-                }}
-                className="flex size-6 items-center justify-center rounded text-[#737373] hover:text-[#DC2626] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
-                aria-label="Delete"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
-            </>
-          ) : (
-            <span className="text-xs text-[#737373]">{relativeTime(conversation.updated_at)}</span>
-          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsEditing(true)
+            }}
+            className="flex size-6 items-center justify-center rounded text-[#737373] hover:text-[#171717] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
+            aria-label="Rename"
+          >
+            <Pencil className="size-3.5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete()
+            }}
+            className="flex size-6 items-center justify-center rounded text-[#737373] hover:text-[#DC2626] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
+            aria-label="Delete"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
         </div>
       )}
     </div>

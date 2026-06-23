@@ -10,6 +10,7 @@ import type {
   StreamErrorEvent,
   StreamDoneEvent,
   StreamChunkEvent,
+  SearchResponse,
 } from "../types"
 
 class ConversationApiClient {
@@ -32,6 +33,10 @@ class ConversationApiClient {
 
   delete(id: string): Promise<void> {
     return apiClient.delete<void>(`/v1/conversations/${id}`)
+  }
+
+  search(query: string): Promise<SearchResponse> {
+    return apiClient.get<SearchResponse>(`/v1/conversations/search?q=${encodeURIComponent(query)}`)
   }
 
   deleteMessage(messageId: string): Promise<void> {

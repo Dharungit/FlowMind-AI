@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 
 function getPercentageColor(percentage: number): string {
   if (percentage >= 80) return "text-[#DC2626]"
-  if (percentage >= 50) return "text-[#EA580C]"
+  if (percentage >= 50) return "text-[#CA8A04]"
   return "text-[#16A34A]"
 }
 
@@ -43,12 +43,14 @@ export function MemoryModal({ open, onClose }: MemoryModalProps) {
           <Dialog.Backdrop className="fixed inset-0 bg-black/50 transition-opacity duration-200" />
           <Dialog.Popup
             className={cn(
-              "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
-              "w-[480px] max-w-[calc(100vw-32px)] rounded-xl bg-white shadow-xl",
-              "transition-all duration-200 outline-none"
+              "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 outline-none",
+              "w-[680px] max-w-[calc(100vw-32px)] h-[480px] max-h-[calc(100vh-32px)]",
+              "rounded-xl bg-white shadow-xl",
+              "flex flex-col overflow-hidden",
+              "transition-all duration-200"
             )}
           >
-            <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4 shrink-0">
               <Dialog.Title className="text-base font-semibold text-neutral-900">
                 Memory
               </Dialog.Title>
@@ -68,7 +70,7 @@ export function MemoryModal({ open, onClose }: MemoryModalProps) {
               </button>
             </div>
 
-            <div className="px-5 py-4">
+            <div className="px-5 py-4 shrink-0">
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
@@ -90,18 +92,20 @@ export function MemoryModal({ open, onClose }: MemoryModalProps) {
                   <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
                     Usage
                   </p>
-                  <p className={cn("mt-1 text-lg font-semibold", getPercentageColor(state.percentage))}>
+                  <p className={cn("mt-1 text-lg font-semibold", getPercentageColor(percentage))}>
                     {percentage}%
                   </p>
                 </div>
               </div>
             </div>
 
-            <MemoryList
-              memories={memories}
-              isLoading={isLoading}
-              onDelete={setDeleteTargetId}
-            />
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <MemoryList
+                memories={memories}
+                isLoading={isLoading}
+                onDelete={setDeleteTargetId}
+              />
+            </div>
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>

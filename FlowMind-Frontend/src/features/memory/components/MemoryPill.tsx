@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import { Brain } from "lucide-react"
-import { useMemoryContext } from "../store/MemoryContext"
-import { useMemoryUsageQuery } from "../hooks/use-memory"
-import { cn } from "@/lib/utils"
+import { Brain } from "lucide-react";
+import { useMemoryContext } from "../store/MemoryContext";
+import { useMemoryUsageQuery } from "../hooks/use-memory";
+import { cn } from "@/lib/utils";
 
 function getPercentageColor(percentage: number): string {
-  if (percentage >= 80) return "text-[#DC2626]"
-  if (percentage >= 50) return "text-[#EA580C]"
-  return "text-[#16A34A]"
+  if (percentage >= 80) return "text-[#DC2626]";
+  if (percentage >= 50) return "text-[#CA8A04]";
+  return "text-[#16A34A]";
 }
 
 interface MemoryPillProps {
-  onClick: () => void
+  onClick: () => void;
 }
 
 export function MemoryPill({ onClick }: MemoryPillProps) {
-  useMemoryUsageQuery()
-  const { state } = useMemoryContext()
-  const percentage = Math.round(state.percentage * 100)
+  useMemoryUsageQuery();
+  const { state } = useMemoryContext();
+  const percentage = Math.round(state.percentage * 100);
 
   return (
     <button
@@ -33,11 +33,8 @@ export function MemoryPill({ onClick }: MemoryPillProps) {
     >
       <Brain className="size-3.5" />
       <span>
-        Memory{" "}
-        <span className={getPercentageColor(state.percentage)}>
-          {percentage}%
-        </span>
+        Memory <span className={getPercentageColor(percentage)}>{percentage}%</span>
       </span>
     </button>
-  )
+  );
 }

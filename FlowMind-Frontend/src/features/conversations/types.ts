@@ -68,4 +68,16 @@ export interface StreamErrorEvent {
   message?: MessageResponse
 }
 
+export interface SearchResult {
+  conversation_id: string
+  title: string
+  matched_text: string
+  created_at: string
+  updated_at: string
+}
+
+export interface SearchResponse {
+  results: SearchResult[]
+}
+
 export type SSEEvent = StreamMetaEvent | StreamChunkEvent | StreamDoneEvent | StreamErrorEvent
