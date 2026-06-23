@@ -41,3 +41,15 @@ class ConversationResponse(BaseModel):
 
 class ConversationDetailResponse(ConversationResponse):
     messages: list[MessageResponse]
+
+
+class ConversationSearchResult(BaseModel):
+    conversation_id: UUID
+    title: str
+    matched_text: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ConversationSearchResponse(BaseModel):
+    results: list[ConversationSearchResult]

@@ -5,6 +5,7 @@ from uuid import uuid4
 from starlette.testclient import TestClient
 
 from app.api.chat import get_conversation_service, get_message_service
+from app.schemas.conversations import ConversationSearchResponse
 from app.database import get_db
 from app.main import create_app
 from app.services.chat import ChatService
@@ -288,4 +289,84 @@ def test_generate_title_requires_auth(settings):
     client = TestClient(app)
 
     resp = client.post(f"/v1/conversations/{uuid4()}/generate-title")
+    assert resp.status_code == 401
+
+
+def test_search_conversations_returns_results(settings):
+    app = _app(settings)
+    now = datetime.now(timezone.utc)
+    conv_id = uuid4()
+
+    result = ConversationSearchResponse(
+        results=[
+            {
+                "conversation_id": conv_id,
+                "title": "Prisma Issues",
+                "matched_text": "How do I use Prisma transactions...",
+                "created_at": now,
+                "updated_at": now,
+            }
+        ]
+    )
+
+    conv_service = MagicMock(spec=ConversationService)
+    conv_service.search = AsyncMock(return_value=result.results)
+    app.dependency_overrides[get_conversation_service] = lambda: conv_service
+
+    client = TestClient(app)
+    token_service = TokenService(settings)
+
+    resp = client.get(
+        "/v1/conversations/search?q=prisma",
+        headers=_auth_headers(token_service),
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["results"]) == 1
+    assert data["results"][0]["title"] == "Prisma Issues"
+    assert "matched_text" in data["results"][0]
+    assert "conversation_id" in data["results"][0]
+    assert "created_at" in data["results"][0]
+    assert "updated_at" in data["results"][0]
+
+
+def test_search_conversations_empty_query(settings):
+    app = _app(settings)
+    conv_service = MagicMock(spec=ConversationService)
+    conv_service.search = AsyncMock(return_value=[])
+    app.dependency_overrides[get_conversation_service] = lambda: conv_service
+
+    client = TestClient(app)
+    token_service = TokenService(settings)
+
+    resp = client.get(
+        "/v1/conversations/search?q=",
+        headers=_auth_headers(token_service),
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"results": []}
+
+
+def test_search_conversations_no_match(settings):
+    app = _app(settings)
+    conv_service = MagicMock(spec=ConversationService)
+    conv_service.search = AsyncMock(return_value=[])
+    app.dependency_overrides[get_conversation_service] = lambda: conv_service
+
+    client = TestClient(app)
+    token_service = TokenService(settings)
+
+    resp = client.get(
+        "/v1/conversations/search?q=nonexistentterm",
+        headers=_auth_headers(token_service),
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"results": []}
+
+
+def test_search_conversations_requires_auth(settings):
+    app = _app(settings)
+    client = TestClient(app)
+
+    resp = client.get("/v1/conversations/search?q=prisma")
     assert resp.status_code == 401

@@ -14,6 +14,7 @@ from app.schemas.conversations import (
     ConversationCreate,
     ConversationDetailResponse,
     ConversationResponse,
+    ConversationSearchResponse,
     ConversationUpdate,
     MessageAddRequest,
 )
@@ -82,6 +83,17 @@ async def list_conversations(
         )
         for c in convs
     ]
+
+
+@router.get("/conversations/search")
+async def search_conversations(
+    q: str,
+    request: Request,
+    service: ConversationService = Depends(get_conversation_service),
+):
+    user_id = request.state.user_id
+    results = await service.search(user_id, q)
+    return ConversationSearchResponse(results=results)
 
 
 @router.get("/conversations/{conversation_id}")
