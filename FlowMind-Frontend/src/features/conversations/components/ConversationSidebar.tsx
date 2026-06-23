@@ -20,10 +20,7 @@ interface ConversationSidebarProps {
   onSelectConversation: (conversation: ConversationResponse) => void;
 }
 
-export function ConversationSidebar({
-  onNewChat,
-  onSelectConversation,
-}: ConversationSidebarProps) {
+export function ConversationSidebar({ onNewChat, onSelectConversation }: ConversationSidebarProps) {
   const { state } = useConversationContext();
   const { data: conversations } = useConversationList();
   const updateConversation = useUpdateConversation();
@@ -31,8 +28,7 @@ export function ConversationSidebar({
 
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const deleteTarget =
-    conversations?.find((c) => c.id === deleteTargetId) ?? null;
+  const deleteTarget = conversations?.find((c) => c.id === deleteTargetId) ?? null;
 
   const handleRename = (id: string, title: string) => {
     updateConversation.mutate({ id, data: { title } });
@@ -57,14 +53,14 @@ export function ConversationSidebar({
           onClick={() => setSearchOpen(true)}
           className={cn(
             "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium",
-            "text-[#737373] hover:bg-[#F5F5F5] hover:text-[#171717]",
+            "text-[#171717] hover:bg-[#F5F5F5]",
             "transition-colors duration-200",
             "cursor-pointer select-none outline-none",
-            "focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-1"
+            "focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-1",
           )}
         >
           <Search className="size-4 shrink-0" />
-          Search
+          Search chats
         </button>
       </div>
       {/* divider with 90% width */}

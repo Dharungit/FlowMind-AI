@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { useConversationContext } from "@/store/conversation/ConversationContext"
 import { conversationClient, parseSSEResponse } from "../api/conversation-client"
 import { useGenerateTitle } from "./useConversations"
-import type { ConversationDetailResponse, StreamRequest } from "../types"
+import type { ConversationDetailResponse, MessageResponse, StreamRequest } from "../types"
 
 const CONVERSATIONS_KEY = ["conversations"] as const
 
@@ -71,32 +71,33 @@ export function useStreamMessage() {
               break
             }
             case "done":
-              if (event.conversation_id && (isNewConversationRef.current || accumulatedContentRef.current)) {
+              if (event.conversation_id) {
                 const now = new Date().toISOString()
-                const seed: ConversationDetailResponse = {
-                  id: event.conversation_id,
-                  title: "",
-                  title_generated: false,
-                  created_at: now,
-                  updated_at: now,
-                  messages: [
-                    {
-                      id: "seed-user",
-                      role: "user",
-                      content: userMessageRef.current,
-                      metadata: null,
-                      created_at: now,
-                    },
-                    {
-                      id: "seed-ai",
-                      role: "assistant",
-                      content: accumulatedContentRef.current,
-                      metadata: null,
-                      created_at: now,
-                    },
-                  ],
+                const userMsg: MessageResponse = {
+                  id: "seed-user", role: "user",
+                  content: userMessageRef.current,
+                  metadata: null, created_at: now,
                 }
+                const assistantMsg: MessageResponse = {
+                  id: "seed-ai", role: "assistant",
+                  content: accumulatedContentRef.current,
+                  metadata: null, created_at: now,
+                }
+                const existing = queryClient.getQueryData<ConversationDetailResponse>(
+                  [...CONVERSATIONS_KEY, event.conversation_id],
+                )
+                const seed: ConversationDetailResponse = existing
+                  ? { ...existing, messages: [...existing.messages, userMsg, assistantMsg], updated_at: now }
+                  : {
+                      id: event.conversation_id,
+                      title: "", title_generated: false,
+                      created_at: now, updated_at: now,
+                      messages: [userMsg, assistantMsg],
+                    }
                 queryClient.setQueryData([...CONVERSATIONS_KEY, event.conversation_id], seed)
+                if (!isNewConversationRef.current) {
+                  queryClient.invalidateQueries({ queryKey: [...CONVERSATIONS_KEY, event.conversation_id] })
+                }
               }
               dispatch({ type: "STREAM_DONE" })
               abortRef.current = null

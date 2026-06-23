@@ -28,7 +28,7 @@ export function MemoryList({ memories, isLoading, onDelete }: MemoryListProps) {
   }
 
   return (
-    <div className="max-h-[400px] overflow-y-auto">
+    <div>
       {memories.map((memory) => (
         <div
           key={memory.id}

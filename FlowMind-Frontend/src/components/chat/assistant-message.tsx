@@ -1,22 +1,22 @@
-"use client"
+"use client";
 
-import { useState, useCallback } from "react"
-import { Copy, Check } from "lucide-react"
-import { MarkdownRenderer } from "./markdown-renderer"
+import { useState, useCallback } from "react";
+import { Copy, Check } from "lucide-react";
+import { MarkdownRenderer } from "./markdown-renderer";
 
 interface AssistantMessageProps {
-  content: string
-  isStreaming?: boolean
+  content: string;
+  isStreaming?: boolean;
 }
 
 export function AssistantMessage({ content, isStreaming }: AssistantMessageProps) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [content])
+    await navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [content]);
 
   return (
     <div className="flex justify-start">
@@ -38,11 +38,11 @@ export function AssistantMessage({ content, isStreaming }: AssistantMessageProps
               className="flex size-6 items-center justify-center rounded text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors cursor-pointer"
               aria-label={copied ? "Copied" : "Copy message"}
             >
-              {copied ? <Check className="size-3.5 text-[#16A34A]" /> : <Copy className="size-3.5" />}
+              {copied ? <Check className="size-4 text-[#16A34A]" /> : <Copy className="size-4" />}
             </button>
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
