@@ -10,12 +10,31 @@ from app.models import Conversation, Message
 from app.schemas.chat import ChatMessage, ChatRequest
 from app.schemas.conversations import MessageAddRequest, MessageResponse
 from app.services.chat import ChatService
+from app.services.usage_tracking import UsageTrackingService
+
+
+def _extract_usage(usage: dict | None) -> dict:
+    # log the useage for debugging purposes
+    if usage:
+        print(f"Usage data: {usage}")
+    if not usage:
+        return {"input_tokens": 0, "output_tokens": 0, "cached_input_tokens": 0}
+    cached = 0
+    details = usage.get("prompt_tokens_details") or {}
+    if isinstance(details, dict):
+        cached = details.get("cached_tokens", 0) or 0
+    return {
+        "input_tokens": usage.get("prompt_tokens", 0) or 0,
+        "output_tokens": usage.get("completion_tokens", 0) or 0,
+        "cached_input_tokens": cached,
+    }
 
 
 class MessageService:
-    def __init__(self, db: AsyncSession, chat_service: ChatService):
+    def __init__(self, db: AsyncSession, chat_service: ChatService, usage_tracking_service: UsageTrackingService | None = None):
         self.db = db
         self.chat_service = chat_service
+        self.usage_tracking = usage_tracking_service
 
     async def add_message(
         self,
@@ -77,6 +96,18 @@ class MessageService:
 
         await self.db.commit()
         await self.db.refresh(assistant_msg)
+
+        if self.usage_tracking and chat_resp.usage:
+            tu = _extract_usage(chat_resp.usage)
+            await self.usage_tracking.track_usage(
+                user_id=user_id,
+                conversation_id=conversation_id,
+                message_id=str(assistant_msg.id),
+                provider="deepseek",
+                model=chat_resp.model_dump().get("model", self.chat_service.default_model),
+                feature="chat",
+                **tu,
+            )
 
         return MessageResponse(
             id=assistant_msg.id or uuid.uuid4(),
@@ -184,6 +215,18 @@ class MessageService:
             conversation.updated_at = datetime.now(timezone.utc)
             await self.db.commit()
             await self.db.refresh(assistant_msg)
+
+            if self.usage_tracking and usage:
+                tu = _extract_usage(usage)
+                await self.usage_tracking.track_usage(
+                    user_id=user_id,
+                    conversation_id=conversation_id,
+                    message_id=str(assistant_msg.id),
+                    provider="deepseek",
+                    model=self.chat_service.default_model,
+                    feature="chat",
+                    **tu,
+                )
 
         if error:
             yield _sse_event({

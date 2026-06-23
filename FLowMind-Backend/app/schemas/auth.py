@@ -19,6 +19,7 @@ class UserProfile(BaseModel):
     email: str
     display_name: str
     avatar_url: str | None = None
+    is_admin: bool = False
 
 
 class AuthResponse(BaseModel):

@@ -47,6 +47,7 @@ JwtAuthMiddleware (validates JWT access tokens, skips public auth routes)
 ```
 app/
 ├── api/
+│   ├── analytics.py        # GET /v1/analytics/user, GET /v1/analytics/admin
 │   ├── auth.py             # POST /v1/auth/google, refresh, logout, GET /me
 │   └── chat.py             # Conversation + message CRUD endpoints
 ├── schemas/
@@ -54,15 +55,20 @@ app/
 │   ├── chat.py             # Pydantic models (ChatMessage, ChatRequest, ChatResponse, ToolDef)
 │   └── conversations.py    # Conversation + message request/response schemas
 ├── services/
+│   ├── analytics.py        # AnalyticsService — dashboard aggregation queries
 │   ├── chat.py             # ChatService — wraps AsyncOpenAI client (internal only)
 │   ├── conversation.py     # ConversationService — create, list, get, update, delete conversations
+│   ├── embedding.py        # EmbeddingService — text embedding via OpenAI
+│   ├── memory.py           # MemoryService — pgvector memory storage, retrieval, LLM extraction
 │   ├── message.py          # MessageService — add message with auto-persist, delete messages
+│   ├── session.py          # SessionService — create, rotate, revoke sessions
 │   ├── token.py            # TokenService — JWT generation, verification, refresh tokens
-│   ├── user.py             # UserService — create/update/lookup users
-│   └── session.py          # SessionService — create, rotate, revoke sessions
+│   ├── usage_tracking.py   # UsageTrackingService — record usage events per AI operation
+│   └── user.py             # UserService — create/update/lookup users
+├── pricing.py              # Model pricing config and calculate_cost()
 ├── config.py               # Settings via pydantic-settings
 ├── database.py             # Async SQLAlchemy engine + session factory
-├── models.py               # User, Session, Conversation, Message SQLAlchemy models
+├── models.py               # User, Session, Conversation, Message, UsageEvent SQLAlchemy models
 ├── middleware.py           # JwtAuthMiddleware, RateLimitMiddleware, LoggingMiddleware
 └── main.py                 # FastAPI app factory + ASGI entry point
 
@@ -122,7 +128,7 @@ Swagger UI at `http://localhost:8000/docs`.
 All via env vars / `.env`.
 
 | Variable | Type | Default | Description |
-|---|---|---|---|
+|---|---|---|---|---|
 | `PROVIDER_BASE_URL` | string | `https://api.deepseek.com/v1` | LLM provider API base URL |
 | `PROVIDER_API_KEY` | string | *(required)* | Provider API key |
 | `PROVIDER_DEFAULT_MODEL` | string | `deepseek-chat` | Default model when request omits `model` |
@@ -132,6 +138,8 @@ All via env vars / `.env`.
 | `JWT_SECRET` | string | *(required)* | Secret key for signing JWT access tokens |
 | `RATE_LIMIT_PER_MINUTE` | int | `60` | Max requests/min per IP (mutating methods) |
 | `LOG_LEVEL` | string | `INFO` | Logging level |
+| `OPENAI_API_KEY` | string | *(empty)* | OpenAI API key for embeddings |
+| `ADMIN_USER_IDS` | string | *(empty)* | Comma-separated admin UUIDs for analytics access |
 
 Point at any OpenAI-compatible provider by changing `PROVIDER_BASE_URL` and `PROVIDER_API_KEY`.
 
@@ -157,7 +165,8 @@ Authenticate with a Google ID token.
     "id": "uuid",
     "email": "user@example.com",
     "display_name": "User Name",
-    "avatar_url": "https://..."
+    "avatar_url": "https://...",
+    "is_admin": false
   }
 }
 ```
@@ -215,7 +224,8 @@ Return the current user profile. Requires a valid JWT access token in the `Autho
   "id": "uuid",
   "email": "user@example.com",
   "display_name": "User Name",
-  "avatar_url": "https://..."
+  "avatar_url": "https://...",
+  "is_admin": false
 }
 ```
 
@@ -382,6 +392,66 @@ Delete a single message from a conversation.
 **Response:** `204 No Content`
 
 **Errors:** 404 — message not found or not owned by the authenticated user.
+
+---
+
+### Analytics
+
+All analytics endpoints require a valid JWT access token in the `Authorization: Bearer <token>` header.
+
+---
+
+#### GET /v1/analytics/user
+
+Return the authenticated user's token usage statistics.
+
+**Response (200):**
+```json
+{
+  "total_usage": {
+    "total_tokens": 150000,
+    "input_tokens": 50000,
+    "output_tokens": 100000
+  },
+  "daily_usage": [
+    {"date": "2026-06-20", "total_tokens": 12000},
+    {"date": "2026-06-21", "total_tokens": 8500}
+  ]
+}
+```
+
+**Errors:** 401 — invalid/expired/missing token.
+
+---
+
+#### GET /v1/analytics/admin
+
+Return platform-wide analytics. Requires admin privileges (user UUID in `ADMIN_USER_IDS`).
+
+**Response (200):**
+```json
+{
+  "platform_usage": {"total_tokens": 150000},
+  "usage_per_user": [
+    {"user_id": "uuid", "total_tokens": 85000}
+  ],
+  "cost_per_user": [
+    {"user_id": "uuid", "estimated_cost": 0.012}
+  ],
+  "feature_breakdown": [
+    {"feature": "chat", "total_tokens": 120000}
+  ],
+  "cache_breakdown": {
+    "cached_tokens": 5000,
+    "non_cached_tokens": 45000
+  },
+  "peak_usage_hours": [
+    {"hour": 10, "total_tokens": 25000}
+  ]
+}
+```
+
+**Errors:** 401 — invalid/expired/missing token, 403 — not an admin.
 
 ---
 

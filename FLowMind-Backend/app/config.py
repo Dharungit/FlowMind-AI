@@ -1,3 +1,5 @@
+import json
+
 from pydantic_settings import BaseSettings
 
 
@@ -18,4 +20,17 @@ class Settings(BaseSettings):
     memory_max_results: int = 5
     memory_max_per_user: int = 100
 
+    admin_user_ids: str = ""
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+    @property
+    def admin_user_ids_list(self) -> list[str]:
+        raw = self.admin_user_ids.strip()
+        if not raw:
+            return []
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            cleaned = raw.strip("[]").strip()
+            return [uid.strip() for uid in cleaned.split(",") if uid.strip()]

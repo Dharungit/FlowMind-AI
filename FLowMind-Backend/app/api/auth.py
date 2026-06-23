@@ -94,6 +94,8 @@ async def google_auth(
 
     logger.info("session created, returning auth response", extra={"user_id": str(user.id)})
 
+    is_admin = str(user.id) in settings.admin_user_ids_list
+
     return AuthResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -102,6 +104,7 @@ async def google_auth(
             email=user.email,
             display_name=user.display_name,
             avatar_url=user.avatar_url,
+            is_admin=is_admin,
         ),
     )
 
@@ -158,6 +161,7 @@ async def logout(
 async def me(
     request: Request,
     user_service: UserService = Depends(get_user_service),
+    settings: Settings = Depends(get_settings),
 ):
     user_id = request.state.user_id
     user = await user_service.get_by_id(user_id)
@@ -165,9 +169,12 @@ async def me(
     if not user:
         raise _auth_error("User not found")
 
+    is_admin = str(user.id) in settings.admin_user_ids_list
+
     return UserProfile(
         id=str(user.id),
         email=user.email,
         display_name=user.display_name,
         avatar_url=user.avatar_url,
+        is_admin=is_admin,
     )

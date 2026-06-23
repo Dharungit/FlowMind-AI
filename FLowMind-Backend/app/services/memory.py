@@ -7,18 +7,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
 from app.models import Memory
+from app.pricing import MODEL_PRICING
 from app.schemas.chat import ChatMessage, ChatRequest
 from app.schemas.memory import MemoryExtractionItem
 from app.services.chat import ChatService
 from app.services.embedding import EmbeddingService
+from app.services.usage_tracking import UsageTrackingService
 
 logger = logging.getLogger("flowmind")
 
 
+def _estimate_embedding_tokens(text: str) -> int:
+    return max(1, len(text) // 4)
+
+
 class MemoryService:
-    def __init__(self, db: AsyncSession, embedding_service: EmbeddingService, settings: Settings | None = None):
+    def __init__(
+        self,
+        db: AsyncSession,
+        embedding_service: EmbeddingService,
+        settings: Settings | None = None,
+        usage_tracking_service: UsageTrackingService | None = None,
+    ):
         self.db = db
         self.embedding_service = embedding_service
+        self.usage_tracking = usage_tracking_service
         self.similarity_threshold = settings.memory_similarity_threshold if settings else 0.85
         self.max_results = settings.memory_max_results if settings else 5
         self.max_per_user = settings.memory_max_per_user if settings else 100
@@ -44,6 +57,17 @@ class MemoryService:
             return None
 
         embedding = await self.embedding_service.embed(memory)
+
+        if self.usage_tracking:
+            est_tokens = _estimate_embedding_tokens(memory)
+            await self.usage_tracking.track_usage(
+                user_id=user_id,
+                provider="openai",
+                model=self.embedding_service.model,
+                feature="embedding",
+                input_tokens=est_tokens,
+                output_tokens=0,
+            )
 
         mem = Memory(
             user_id=user_id,
@@ -182,6 +206,18 @@ class MemoryService:
 
     async def _check_duplicate(self, user_id: str, memory_text: str) -> bool:
         embedding = await self.embedding_service.embed(memory_text)
+
+        if self.usage_tracking:
+            est_tokens = _estimate_embedding_tokens(memory_text)
+            await self.usage_tracking.track_usage(
+                user_id=user_id,
+                provider="openai",
+                model=self.embedding_service.model,
+                feature="embedding",
+                input_tokens=est_tokens,
+                output_tokens=0,
+            )
+
         if not embedding:
             return False
 
@@ -226,10 +262,29 @@ class MemoryService:
         user_message: str,
         assistant_message: str,
         chat_service: ChatService,
+        user_id: str | None = None,
+        conversation_id: str | None = None,
     ) -> list[MemoryExtractionItem]:
         messages = self._build_extraction_prompt(user_message, assistant_message)
         request = ChatRequest(messages=messages)
         response = await chat_service.chat(request)
+
+        if self.usage_tracking and response.usage and user_id:
+            usage = response.usage
+            details = usage.get("prompt_tokens_details") or {}
+            tu = {
+                "input_tokens": usage.get("prompt_tokens", 0) or 0,
+                "output_tokens": usage.get("completion_tokens", 0) or 0,
+                "cached_input_tokens": (details.get("cached_tokens", 0) or 0) if isinstance(details, dict) else 0,
+            }
+            await self.usage_tracking.track_usage(
+                user_id=user_id,
+                conversation_id=conversation_id,
+                provider="deepseek",
+                model=response.model_dump().get("model", chat_service.default_model),
+                feature="memory_extraction",
+                **tu,
+            )
 
         content = ""
         if response.choices:
@@ -264,7 +319,7 @@ class MemoryService:
             logger.info("Extraction skipped: user %s at limit %d/%d", user_id, count, self.max_per_user)
             return []
 
-        items = await self._extract_memories_via_llm(user_message, assistant_message, chat_service)
+        items = await self._extract_memories_via_llm(user_message, assistant_message, chat_service, user_id=user_id)
         created = []
         for item in items:
             if len(created) >= remaining:

@@ -23,6 +23,7 @@ from app.services.conversation import ConversationService
 from app.services.embedding import EmbeddingService
 from app.services.memory import MemoryService
 from app.services.message import MessageService
+from app.services.usage_tracking import UsageTrackingService
 
 logger = logging.getLogger("flowmind")
 
@@ -35,7 +36,8 @@ def get_conversation_service(request: Request, db: AsyncSession = Depends(get_db
 
 def get_message_service(request: Request, db: AsyncSession = Depends(get_db)) -> MessageService:
     chat_service = request.app.state.chat_service
-    return MessageService(db, chat_service)
+    usage_tracking = UsageTrackingService(db)
+    return MessageService(db, chat_service, usage_tracking)
 
 
 def get_embedding_service(request: Request) -> EmbeddingService:
@@ -48,7 +50,8 @@ def get_memory_service(
     embedding_service: EmbeddingService = Depends(get_embedding_service),
 ) -> MemoryService:
     settings = getattr(request.app.state, "settings", None)
-    return MemoryService(db, embedding_service, settings)
+    usage_tracking = UsageTrackingService(db)
+    return MemoryService(db, embedding_service, settings, usage_tracking)
 
 
 @router.post("/conversations", status_code=201)
@@ -227,6 +230,22 @@ async def generate_conversation_title(
         ],
     )
     response = await chat_service.chat(llm_request)
+
+    if response.usage:
+        usage_tracking = UsageTrackingService(db)
+        usage = response.usage
+        details = usage.get("prompt_tokens_details") or {}
+        await usage_tracking.track_usage(
+            user_id=user_id,
+            conversation_id=str(conversation_id),
+            provider="deepseek",
+            model=response.model_dump().get("model", chat_service.default_model),
+            feature="title_generation",
+            input_tokens=usage.get("prompt_tokens", 0) or 0,
+            output_tokens=usage.get("completion_tokens", 0) or 0,
+            cached_input_tokens=(details.get("cached_tokens", 0) or 0) if isinstance(details, dict) else 0,
+        )
+
     title = response.choices[0]["message"]["content"].strip().strip('"').strip("'")
 
     words = title.split()
@@ -290,7 +309,8 @@ async def run_memory_extraction(
         try:
             embedding_service = EmbeddingService(settings)
             chat_service = ChatService(settings)
-            memory_service = MemoryService(db, embedding_service, settings)
+            usage_tracking = UsageTrackingService(db)
+            memory_service = MemoryService(db, embedding_service, settings, usage_tracking)
 
             result = await db.execute(
                 select(Message)
