@@ -42,7 +42,6 @@ class ConversationService:
         if conv is None:
             return None
         conv.title = title
-        conv.updated_at = datetime.now(timezone.utc)
         await self.db.commit()
         await self.db.refresh(conv)
         return conv
