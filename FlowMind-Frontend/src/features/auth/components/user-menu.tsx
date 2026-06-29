@@ -1,13 +1,10 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { LogOut, Mail } from "lucide-react";
+import Link from "next/link";
+import { LogOut, Mail, BarChart3, Shield } from "lucide-react";
 import { useLogout } from "../hooks/use-auth";
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "@/components/shared/Avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/shared/Avatar";
 import {
   Popover,
   PopoverTrigger,
@@ -27,7 +24,7 @@ export function UserMenu() {
   const { data: session } = useSession();
   const logout = useLogout();
   const user = session?.user;
-
+  console.log("UserMenu session:", session);
   if (!user) return null;
 
   const initial = getInitial(user.display_name, user.email);
@@ -36,23 +33,33 @@ export function UserMenu() {
     <Popover>
       <PopoverTrigger className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-neutral-100 outline-hidden transition-colors hover:bg-neutral-200">
         <Avatar>
-          {user.avatar_url ? (
-            <AvatarImage src={user.avatar_url} alt={user.display_name} />
-          ) : null}
+          {user.avatar_url ? <AvatarImage src={user.avatar_url} alt={user.display_name} /> : null}
           <AvatarFallback>{initial}</AvatarFallback>
         </Avatar>
       </PopoverTrigger>
-      <PopoverContent
-        side="bottom"
-        align="end"
-        sideOffset={8}
-        className="bg-white"
-      >
+      <PopoverContent side="bottom" align="end" sideOffset={8} className="bg-white">
         <PopoverTitle>{user.display_name}</PopoverTitle>
         <PopoverDescription className="flex items-center gap-1.5">
           <Mail className="size-3.5 shrink-0" />
           {user.email}
         </PopoverDescription>
+        <div className="border-t border-border" />
+        <Link
+          href="/analytics"
+          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#171717] hover:bg-neutral-100 transition-colors cursor-pointer"
+        >
+          <BarChart3 className="size-4 shrink-0" />
+          Analytics
+        </Link>
+        {user.is_admin === true && (
+          <Link
+            href="/admin/analytics"
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#171717] hover:bg-neutral-100 transition-colors cursor-pointer"
+          >
+            <Shield className="size-4 shrink-0" />
+            Admin Analytics
+          </Link>
+        )}
         <div className="border-t border-border" />
         <Button
           variant="ghost"
