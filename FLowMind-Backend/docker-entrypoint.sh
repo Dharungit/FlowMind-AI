@@ -17,4 +17,4 @@ if [ -n "$DATABASE_URL" ]; then
     echo "Migrations complete"
 fi
 
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+exec "$@"
