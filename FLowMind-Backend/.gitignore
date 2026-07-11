@@ -1,4 +1,6 @@
 __pycache__/
 *.pyc
 .env
+.env.docker
+.env.prod
 .pytest_cache/

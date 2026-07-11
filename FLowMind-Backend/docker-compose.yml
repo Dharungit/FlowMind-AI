@@ -19,20 +19,13 @@ services:
     build: .
     ports:
       - "8000:8000"
-    environment:
-      PROVIDER_API_KEY: ${PROVIDER_API_KEY:-your-api-key}
-      PROVIDER_BASE_URL: ${PROVIDER_BASE_URL:-https://api.deepseek.com/v1}
-      PROVIDER_DEFAULT_MODEL: ${PROVIDER_DEFAULT_MODEL:-deepseek-chat}
-      DATABASE_URL: postgresql+asyncpg://flowmind:flowmind@db:5432/flowmind
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      MEMORY_SIMILARITY_THRESHOLD: ${MEMORY_SIMILARITY_THRESHOLD:-0.85}
-      MEMORY_MAX_RESULTS: ${MEMORY_MAX_RESULTS:-5}
-      MEMORY_MAX_PER_USER: ${MEMORY_MAX_PER_USER:-100}
-      ADMIN_USER_IDS: ${ADMIN_USER_IDS:-[]}
+    env_file:
+      - .env.docker
+    volumes:
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       db:
         condition: service_healthy
